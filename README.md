@@ -1,3 +1,4 @@
+```build_csv*.py``` are used to build CSV files from netCDF4 files on Gates/Local machine.    
 ```smooth-result-build-npy.py``` read predictions and calculate R2 score for different models.   
 ```smooth-result.py``` read R2 npy file and plot box and line plots.   
 ```smooth-spatial.py``` plot spatial distribution of concurrent R2.    
