@@ -5,3 +5,6 @@
 hyper/*
 AutoML/*
 *.csv
+*.nc
+*.npy
+*.p
