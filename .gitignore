@@ -1,4 +1,5 @@
 *.sh
 *.ipynb
 *.png
-
+*.pyc
+hyper/*
