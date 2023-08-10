@@ -4,7 +4,11 @@
 *.pyc
 hyper/*
 AutoML/*
+Lasso/*
+Linear/*
 *.csv
 *.nc
 *.npy
 *.p
+*.out
+torchModel/*
