@@ -288,9 +288,9 @@ def run(time_lag, eof_modes, random_seed, station_id):
         r2s_ens.append(r2)
         print('R2: ', r2)
         if mode_smooth:
-            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-smooth-ssp/'+'remove-'+exclude+str(station)+'/'
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-smooth-ssp/'+str(station)+'/'
         else:
-            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-ssp/'+'remove-'+exclude+str(station)+'/'
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-ssp/'+str(station)+'/'
         if not os.path.exists(path):
             os.makedirs(path)
         if lag3:
