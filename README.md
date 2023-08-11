@@ -8,3 +8,5 @@
 
 ```real-smooth.py``` apply ML models with USGS and reanalysis dataset.  
  
+```train_full.py``` train ML models with historical CMIP6 in a cross-validation setting.    
+```train_full_ssp.py``` train ML models with historical+ssp CMIP6 in a train-test setting.  
