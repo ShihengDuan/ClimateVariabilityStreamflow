@@ -47,11 +47,11 @@ if pre_season==0:
 else:
     lag3 = True
 model_type = args['model_type']
-hist_co2 = pd.read_csv('../historical_co2.csv', index_col=['wy', 'year', 'month'])
-ssp126_co2 = pd.read_csv('../ssp126_co2.csv', index_col=['wy', 'year', 'month'])
-ssp245_co2 = pd.read_csv('../ssp245_co2.csv', index_col=['wy', 'year', 'month'])
-ssp370_co2 = pd.read_csv('../ssp370_co2.csv', index_col=['wy', 'year', 'month'])
-ssp585_co2 = pd.read_csv('../ssp585_co2.csv', index_col=['wy', 'year', 'month'])
+hist_co2 = pd.read_csv('historical_co2.csv', index_col=['wy', 'year', 'month'])
+ssp126_co2 = pd.read_csv('ssp126_co2.csv', index_col=['wy', 'year', 'month'])
+ssp245_co2 = pd.read_csv('ssp245_co2.csv', index_col=['wy', 'year', 'month'])
+ssp370_co2 = pd.read_csv('ssp370_co2.csv', index_col=['wy', 'year', 'month'])
+ssp585_co2 = pd.read_csv('ssp585_co2.csv', index_col=['wy', 'year', 'month'])
 
 hist_co2 = hist_co2/300
 ssp126_co2 = ssp126_co2/300
@@ -82,12 +82,12 @@ MPI_585_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 11),
 
 
 real_hist_dfs = []
-path = '../Reanalysis-csv/hist_q_csv_monthly.csv'
+path = 'Reanalysis-csv/hist_q_csv_monthly.csv'
 real_q_df = pd.read_csv(path, index_col=['wy', 'year', 'month'])
 real_q_df[real_q_df<0]=0
 real_q_df = real_q_df.sort_index(level=0)
 # hist_modes_df = pd.read_csv('IPSL-Modes-csv-high/r'+str(member)+'-hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
-real_modes_df = pd.read_csv('../Reanalysis-csv-CBF/hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
+real_modes_df = pd.read_csv('Reanalysis-csv-CBF/hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
 real_modes_df['modesWY']=real_modes_df.index
 real_modes_df_co2 = pd.concat((real_modes_df, (hist_co2)), axis=1)
 real_modes_df_co2 = real_modes_df_co2.sort_index(level=0)

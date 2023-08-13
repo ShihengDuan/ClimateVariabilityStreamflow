@@ -47,7 +47,7 @@ if pre_season==0:
 else:
     lag3 = True
 model_type = args['model_type']
-hist_co2 = pd.read_csv('../historical_co2.csv', index_col=['wy', 'year', 'month'])
+hist_co2 = pd.read_csv('historical_co2.csv', index_col=['wy', 'year', 'month'])
 hist_co2 = hist_co2/300
 
 IPSL_hist_dfs = load_data('IPSL-CM6A-LR', ensembles=range(1, 11), co2=hist_co2)
@@ -70,12 +70,12 @@ CNRM_hist_dfs = load_data('CNRM-ESM2-1', ensembles=range(1, 11), co2=hist_co2)
 print(len(CNRM_hist_dfs))
 
 real_hist_dfs = []
-path = '../Reanalysis-csv/hist_q_csv_monthly.csv'
+path = 'Reanalysis-csv/hist_q_csv_monthly.csv'
 real_q_df = pd.read_csv(path, index_col=['wy', 'year', 'month'])
 real_q_df[real_q_df<0]=0
 real_q_df = real_q_df.sort_index(level=0)
 # hist_modes_df = pd.read_csv('IPSL-Modes-csv-high/r'+str(member)+'-hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
-real_modes_df = pd.read_csv('../Reanalysis-csv-CBF/hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
+real_modes_df = pd.read_csv('Reanalysis-csv-CBF/hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
 real_modes_df['modesWY']=real_modes_df.index
 real_modes_df_co2 = pd.concat((real_modes_df, (hist_co2)), axis=1)
 real_modes_df_co2 = real_modes_df_co2.sort_index(level=0)
@@ -220,6 +220,16 @@ def run(test_gcm, eof_modes, random_seed, station_id):
                 ml_model = Lasso
             model = ml_model(alpha=alpha_optim).fit(train_x, station_train_dfs['Q_sim'])
             y_pred = model.predict(test_x)
+            y_pred_train = model.predict(train_x)
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/'
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            if lag3:
+                file = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(random_seed)+'_lag3'
+            else:
+                file = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(random_seed)
+            with open(file, 'wb') as pfile:
+                pickle.dump(model, pfile)
         if model_type.upper()=='AUTOML':
             train_input = station_train_dfs[all_predictor]
             val_input = station_val_dfs[all_predictor]
@@ -233,6 +243,7 @@ def run(test_gcm, eof_modes, random_seed, station_id):
             path=path).fit(
             train_data=train_input, tuning_data=val_input)
             y_pred = model.predict(test_input).values
+            y_pred_train = model.predict(train_input).values
         if model_type.upper()=='AUTOLR':
             train_input = station_train_dfs[all_predictor]
             val_input = station_val_dfs[all_predictor]
@@ -246,19 +257,31 @@ def run(test_gcm, eof_modes, random_seed, station_id):
             path=path).fit(
             train_data=train_input, tuning_data=val_input, hyperparameters=custom_hyperparameters)
             y_pred = model.predict(test_input).values
+            y_pred_train = model.predict(train_input).values
         if model_type.upper()=='LR':
             model = LinearRegression().fit(train_x, station_train_dfs['Q_sim'])
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/'
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            if lag3:
+                file = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(random_seed)+'_lag3'
+            else:
+                file = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(random_seed)
+            with open(file, 'wb') as pfile:
+                pickle.dump(model, pfile)
             y_pred = model.predict(test_x)
+            y_pred_train = model.predict(train_x)
         if model_type.upper()=='LOD':
             r2, records, target_pred, last_pred_test, train_pred = station_iteration(station_train_dfs=station_train_dfs, all_predictor=all_predictor,
                                         station_test_dfs=station_test_dfs, station_val_dfs=station_val_dfs, norm=False, plot=False)
-            y_pred = last_pred_test
             if lag3:
                 file = '/p/lustre2/shiduan/LOD-smooth/'+station+'/model-records-EOF-'+str(eof)+'-lag3'
             else:
                 file = '/p/lustre2/shiduan/LOD-smooth/'+station+'/model-records-EOF-'+str(eof)
             with open(file+'-seed-'+str(random_seed), 'wb') as pfile:
                 pickle.dump(records, pfile)
+            y_pred_train = train_pred
+            y_pred = last_pred_test
         r2 = r2_score(station_test_dfs['Q_sim'].values.reshape(-1, 1), y_pred.reshape(-1, 1))
         r2s_ens.append(r2)
         print('R2: ', r2)
@@ -268,19 +291,32 @@ def run(test_gcm, eof_modes, random_seed, station_id):
             path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions/'+str(station)+'/'
         if not os.path.exists(path):
             os.makedirs(path)
+        # Save test predictions. 
         if lag3:
             file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real_lag3.npy'
         else:
             file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real.npy'
         np.save(file, 
-                station_train_dfs['Q_sim'].values.reshape(-1, 1))
+                station_test_dfs['Q_sim'].values.reshape(-1, 1))
         if lag3:
             file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred_lag3.npy'
         else:
             file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred.npy'
         np.save(file, 
                 y_pred.reshape(-1, 1))
-
+        # Save train predictions
+        if lag3:
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real_lag3_train.npy'
+        else:
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real_train.npy'
+        np.save(file, 
+                station_train_dfs['Q_sim'].values.reshape(-1, 1))
+        if lag3:
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred_lag3_train.npy'
+        else:
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred_train.npy'
+        np.save(file, 
+                y_pred_train.reshape(-1, 1))
     return r2s_ens
 
 for station in station_ids:
