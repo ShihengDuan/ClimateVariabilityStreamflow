@@ -270,21 +270,21 @@ def run(time_lag, test_gcm, eof_modes, random_seed, station_id):
         r2s_ens.append(r2)
         print('R2: ', r2)
         if mode_smooth:
-            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-smooth/'+str(station)+'/'
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-smooth/'+'remove-'+exclude+'/'+str(station)+'/'
         else:
-            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions/'+str(station)+'/'
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions/'+'remove-'+exclude+'/'+str(station)+'/'
         if not os.path.exists(path):
             os.makedirs(path)
         if lag3:
-            file = path+station+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-remove-'+exclude+'-real_lag3.npy'
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real_lag3.npy'
         else:
-            file = path+station+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-remove-'+exclude+'-real.npy'
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real.npy'
         np.save(file, 
                 station_train_dfs['Q_sim'].values.reshape(-1, 1))
         if lag3:
-            file = path+station+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-remove-'+exclude+'-pred_lag3.npy'
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred_lag3.npy'
         else:
-            file = path+station+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-remove-'+exclude+'-pred.npy'
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred.npy'
         np.save(file, 
                 y_pred.reshape(-1, 1))
 
