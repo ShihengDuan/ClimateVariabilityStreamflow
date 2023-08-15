@@ -36,12 +36,13 @@ output = 'EOF: ' + str(eof) + ' lag: ' + str(lag)
 print(output)
 fig = plt.figure(figsize=(12, 3))
 
-model_path = '/p/lustre2/shiduan/AutogluonModels-smooth-LR/ag-'
+
 # model_path = '/p/lustre2/shiduan/AutogluonModels-smooth/ag-'
 hist_co2 = pd.read_csv('historical_co2.csv', index_col=['wy', 'year', 'month'])
-
+hist_co2 = hist_co2/300
 
 r2_all_ml = []
+r2_all_mllr = []
 r2_all_lasso = []
 r2_all_ridge = []
 r2_all_linear = []
@@ -52,6 +53,7 @@ acc_all_lasso = []
 acc_all_ridge = []
 acc_all_linear = []
 acc_all_lod = []
+acc_all_mllr = []
 
 for ind, station in enumerate(station_ids):
     real_hist_dfs = []
@@ -119,14 +121,15 @@ for ind, station in enumerate(station_ids):
     test_dfs = test_dfs[0] # only reanalysis dataframe. 
     station_test_dfs = test_dfs.xs(station, level=1)
     # autoML
+    model_path = '/p/lustre2/shiduan/AutogluonModels/ag-'
     test_x = station_test_dfs[ml_predictor]
     true_y = test_x['Q_sim'].values.reshape(-1, 1)
     pred_y = []
     for seed in range(0, 6):
         if lag3:
-            path = model_path+str(station)+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)+'-lag3'
+            path = model_path+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)+'-lag3'
         else:
-            path = model_path+str(station)+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)
+            path = model_path+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)
         model = TabularPredictor.load(path, require_py_version_match=False)
         y_pred = model.predict(test_x)
         pred_y.append(y_pred.values.reshape(-1, 1))
@@ -148,12 +151,12 @@ for ind, station in enumerate(station_ids):
     pred_y = []
     for seed in range(0, 6):
         if lag3:
-            path = '/p/lustre2/shiduan/LOD-smooth/model-records-EOF-'+str(eof)+'-lag-'+str(lag)+'-lag3-seed-'+str(seed)
+            path = '/p/lustre2/shiduan/LOD-smooth/'+station+'/model-records-EOF-'+str(eof)+'-lag3-seed-'+str(seed)
         else:
-            path = '/p/lustre2/shiduan/LOD-smooth/model-records-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)
+            path = '/p/lustre2/shiduan/LOD-smooth/'+station+'/model-records-EOF-'+str(eof)+'-seed-'+str(seed)
         with open(path, 'rb') as pfile:
-            records_all = pickle.load(pfile)
-        record = records_all[ind]
+            record = pickle.load(pfile)
+        # record = records_all[ind]
         all_prediction, predictors = get_prediction(records=record, station_df=test_x)
         pred_y.append(all_prediction.reshape(-1, 1))
     pred_y_all = np.concatenate(pred_y, axis=-1)
@@ -172,17 +175,12 @@ for ind, station in enumerate(station_ids):
             plt.plot(y.reshape(-1, 1), color='tab:purple', alpha=.3)
     # Lasso
     test_x = station_test_dfs[all_predictor].copy()
-    co2_predictors = []
-    for predct in all_predictor:
-        if 'co2' in predct:
-            co2_predictors.append(predct)
-    test_x.loc[:, co2_predictors] = test_x.loc[:, co2_predictors].div(300)
     pred_y = []
     for seed in range(0, 6):
         if lag3:
-            path = '/p/lustre2/shiduan/Lasso-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)+'_lag3'
+            path = '/p/lustre2/shiduan/LASSO-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)+'_lag3'
         else:
-            path = '/p/lustre2/shiduan/Lasso-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)
+            path = '/p/lustre2/shiduan/LASSO-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)
         with open(path, 'rb') as pfile:
             model = pickle.load(pfile)
         y_pred = model.predict(test_x)
@@ -205,9 +203,9 @@ for ind, station in enumerate(station_ids):
     pred_y = []
     for seed in range(0, 6):
         if lag3:
-            path = '/p/lustre2/shiduan/Ridge-smooth/RD-'+str(station)+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)+'_lag3'
+            path = '/p/lustre2/shiduan/RIDGE-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)+'_lag3'
         else:
-            path = '/p/lustre2/shiduan/Ridge-smooth/RD-'+str(station)+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)
+            path = '/p/lustre2/shiduan/RIDGE-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)
         with open(path, 'rb') as pfile:
             model = pickle.load(pfile)
         y_pred = model.predict(test_x)
@@ -230,9 +228,9 @@ for ind, station in enumerate(station_ids):
     pred_y = []
     for seed in range(0, 6):
         if lag3:
-            path = '/p/lustre2/shiduan/Linear-smooth/LR-'+str(station)+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)+'_lag3'
+            path = '/p/lustre2/shiduan/LR-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)+'_lag3'
         else:
-            path = '/p/lustre2/shiduan/Linear-smooth/LR-'+str(station)+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)
+            path = '/p/lustre2/shiduan/LR-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)
         with open(path, 'rb') as pfile:
             model = pickle.load(pfile)
         y_pred = model.predict(test_x)
@@ -253,10 +251,36 @@ for ind, station in enumerate(station_ids):
         for y in pred_y:
             plt.plot(y.reshape(-1, 1), color='tab:orange', alpha=.3)
         plt.plot(true_y, label='USGS', linewidth=2, color='black')
+    # autolr
+    model_path = '/p/lustre2/shiduan/AutogluonModels-LR/ag-'
+    test_x = station_test_dfs[ml_predictor]
+    true_y = test_x['Q_sim'].values.reshape(-1, 1)
+    pred_y = []
+    for seed in range(0, 6):
+        if lag3:
+            path = model_path+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)+'-lag3'
+        else:
+            path = model_path+str(station)+'-EOF-'+str(eof)+'-seed-'+str(seed)
+        model = TabularPredictor.load(path, require_py_version_match=False)
+        y_pred = model.predict(test_x)
+        pred_y.append(y_pred.values.reshape(-1, 1))
+    pred_y_all = np.concatenate(pred_y, axis=-1)
+    pred_y_all = np.mean(pred_y_all, axis=-1)
+    r2 = r2_score(true_y, pred_y_all.reshape(-1, 1))
+    acc = accuracy_score(true_y>0, pred_y_all.reshape(-1, 1)>0)
+    print(station, ' AutoML: ', r2, ' peak: ', peak)
+    print('MSE: ', mean_squared_error(true_y, pred_y_all.reshape(-1, 1)), 
+          ' MAE: ', mean_absolute_error(true_y, pred_y_all.reshape(-1, 1)),
+          ' ACC: ', acc) 
+    acc_all_mllr.append(acc)
+    r2_all_mllr.append(r2)
+    
 plt.legend()
 plt.savefig('real-11528700-ML.png')
 print('AutoML: ', np.median(r2_all_ml), np.mean(r2_all_ml), 
       np.median(acc_all_ml), np.mean(acc_all_ml))
+print('AutoLR: ', np.median(r2_all_mllr), np.mean(r2_all_mllr), 
+      np.median(acc_all_mllr), np.mean(acc_all_mllr))
 print('LOD: ', np.median(r2_all_lod), np.mean(r2_all_lod), 
       np.median(acc_all_lod), np.mean(acc_all_lod))
 print('Ridge: ', np.median(r2_all_ridge), np.mean(r2_all_ridge), 
@@ -266,3 +290,15 @@ print('Lasso: ', np.median(r2_all_lasso), np.mean(r2_all_lasso),
 print('LR: ', np.median(r2_all_linear), np.mean(r2_all_linear), 
       np.median(acc_all_linear), np.mean(acc_all_linear))
 
+with open('dataResult/Reanalysis/real_r2_AutoLR_EOF'+str(eof)+'.p', 'wb') as pfile:
+    pickle.dump(r2_all_mllr, pfile)
+with open('dataResult/Reanalysis/real_r2_AutoML_EOF'+str(eof)+'.p', 'wb') as pfile:
+    pickle.dump(r2_all_ml, pfile)
+with open('dataResult/Reanalysis/real_r2_LOD_EOF'+str(eof)+'.p', 'wb') as pfile:
+    pickle.dump(r2_all_lod, pfile)
+with open('dataResult/Reanalysis/real_r2_LR_EOF'+str(eof)+'.p', 'wb') as pfile:
+    pickle.dump(r2_all_linear, pfile)
+with open('dataResult/Reanalysis/real_r2_Lasso_EOF'+str(eof)+'.p', 'wb') as pfile:
+    pickle.dump(r2_all_lasso, pfile)
+with open('dataResult/Reanalysis/real_r2_Ridge_EOF'+str(eof)+'.p', 'wb') as pfile:
+    pickle.dump(r2_all_ridge, pfile)
