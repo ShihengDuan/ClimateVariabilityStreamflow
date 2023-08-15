@@ -21,13 +21,13 @@ scores_LOD_lag3 = np.load('../dataResult/scores_LOD_smooth_lag3.npy')
 scores_LA_lag3 = np.load('../dataResult/scores_LA_smooth_lag3.npy')
 scores_RD_lag3 = np.load('../dataResult/scores_RD_smooth_lag3.npy')
 scores_LR_lag3  = np.load('../dataResult/scores_LR_smooth_lag3.npy')
-scores_ML_lag3 = np.load('../dataResult/scores_ML_smooth_lag3.npy')
+scores_ML_lag3 = np.load('../dataResult/scores_AutoLR_smooth_lag3.npy')
 
 scores_LOD = np.load('../dataResult/scores_LOD_smooth.npy')
 scores_LA = np.load('../dataResult/scores_LA_smooth.npy')
 scores_RD = np.load('../dataResult/scores_RD_smooth.npy')
 scores_LR  = np.load('../dataResult/scores_LR_smooth.npy')
-scores_ML = np.load('../dataResult/scores_ML_smooth.npy')
+scores_ML = np.load('../dataResult/scores_AutoLR_smooth.npy')
 
 
 
@@ -41,11 +41,12 @@ for station in station_ids:
     lons.append(record['gauge_lon'])
 
 norm = colors.Normalize(vmin=0, vmax=0.5)
+norm_re = colors.Normalize(vmin=0, vmax=0.7)
 
 fig = plt.figure(figsize=(12, 12))
 for i in range(6):
     ind = i+1
-    ax = fig.add_subplot(5, 7, ind, projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(5, 7, ind+1, projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -60,7 +61,7 @@ for i in range(6):
     ax.set_title('LR-EOF-'+str(ind), fontsize=12)
 for i in range(6):
     ind = i+1
-    ax = fig.add_subplot(5, 7, ind+7, projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(5, 7, ind+7+1, projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -75,7 +76,7 @@ for i in range(6):
     ax.set_title('Ridge-EOF-'+str(ind), fontsize=12)
 for i in range(6):
     ind = i+1
-    ax = fig.add_subplot(5, 7, ind+14, projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(5, 7, ind+14+1, projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -90,7 +91,7 @@ for i in range(6):
     ax.set_title('Lasso-EOF-'+str(ind), fontsize=12)
 for i in range(6):
     ind = i+1
-    ax = fig.add_subplot(5, 7, ind+21, projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(5, 7, ind+21+1, projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -105,7 +106,7 @@ for i in range(6):
     ax.set_title('LOD-EOF-'+str(ind), fontsize=12)
 for i in range(6):
     ind = i+1
-    ax = fig.add_subplot(5, 7, ind+28, projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(5, 7, ind+28+1, projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -123,7 +124,7 @@ for i in range(6):
 with open('../dataResult/Reanalysis/results.p', 'rb') as pfile:
     results = pickle.load(pfile)
 
-ax_lr = fig.add_subplot(5, 7, 7, projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(5, 7, 1, projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -131,12 +132,12 @@ for ind, station in enumerate(station_ids):
     else:
         marker='o'
     score, eof_number = results[station]['LR']
-    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm, 
+    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm_re, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('LR-Reanalysis', fontsize=12)
 
-ax_lr = fig.add_subplot(5, 7, 14, projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(5, 7, 8, projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -144,12 +145,12 @@ for ind, station in enumerate(station_ids):
     else:
         marker='o'
     score, eof_number = results[station]['Ridge']
-    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm, 
+    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm_re, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('Ridge-Reanalysis', fontsize=12)
 
-ax_lr = fig.add_subplot(5, 7, 21, projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(5, 7, 15, projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -157,12 +158,12 @@ for ind, station in enumerate(station_ids):
     else:
         marker='o'
     score, eof_number = results[station]['Lasso']
-    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm, 
+    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm_re, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('Lasso-Reanalysis', fontsize=12)
 
-ax_lr = fig.add_subplot(5, 7, 28, projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(5, 7, 22, projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -170,12 +171,12 @@ for ind, station in enumerate(station_ids):
     else:
         marker='o'
     score, eof_number = results[station]['LOD']
-    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm, 
+    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm_re, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('LOD-Reanalysis', fontsize=12)
 
-ax_lr = fig.add_subplot(5, 7, 35, projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(5, 7, 29, projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -183,7 +184,7 @@ for ind, station in enumerate(station_ids):
     else:
         marker='o'
     score, eof_number = results[station]['AutoML']
-    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm, 
+    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm_re, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('AutoML-Reanalysis', fontsize=12)
@@ -191,6 +192,16 @@ ax_lr.set_title('AutoML-Reanalysis', fontsize=12)
 plt.tight_layout()
 fig.subplots_adjust(right=0.94)
 cbar_ax = fig.add_axes([0.949, 0.05, 0.015, 0.9])
-fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap="plasma"), cax=cbar_ax)
+cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap="plasma"), 
+                  cax=cbar_ax)
+cb.set_label(label='CMIP6', fontsize=14)
+
+fig.subplots_adjust(left=0.05)
+cbar_ax = fig.add_axes([0.02, 0.05, 0.015, 0.9])
+cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm_re, cmap="plasma"), 
+                  cax=cbar_ax)
+cbar_ax.yaxis.set_ticks_position('left')
+cbar_ax.yaxis.set_label_position('left')
+cbar_ax.set_ylabel(ylabel='Reanalysis', fontsize=14)
 
 plt.savefig('performance-spatial-combine.png', bbox_inches='tight', dpi=180)

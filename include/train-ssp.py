@@ -21,9 +21,9 @@ import argparse
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--include', type=str)
-    parser.add_argument('--smooth', type=int, default=0)
+    parser.add_argument('--smooth', type=int, default=1)
     parser.add_argument('--eof', type=int)
-    parser.add_argument('--pre_season', type=int, default=0)
+    # parser.add_argument('--pre_season', type=int, default=0)
     parser.add_argument('--model_type', choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR'])
     args = vars(parser.parse_args())
     return args
@@ -34,6 +34,7 @@ station_ids = ['10336645', '10336660', '11124500', '11141280',
                '11381500', '11451100', '11468500', '11473900', '11475560', 
                '11476600', '11478500', '11480390', '11481200', 
                '11482500', '11522500', '11523200', '11528700'] # 25 in total. 
+station_peaks = [5, 5, 3, 3, 2, 2, 3, 6, 5, 5, 5, 2, 3, 2, 2, 3, 1, 1, 1, 2, 12, 1, 3, 5, 2]
 args = get_args()
 include = args['include']
 eof = args['eof']
@@ -43,12 +44,9 @@ if smooth==0:
 else:
     mode_smooth=True
 print('Include: ', include)
-pre_season = args['pre_season']
-if pre_season==0:
-    lag3 = False
-else:
-    lag3 = True
+
 model_type = args['model_type']
+print('ModelType: ', model_type)
 hist_co2 = pd.read_csv('../historical_co2.csv', index_col=['wy', 'year', 'month'])
 ssp126_co2 = pd.read_csv('../ssp126_co2.csv', index_col=['wy', 'year', 'month'])
 ssp245_co2 = pd.read_csv('../ssp245_co2.csv', index_col=['wy', 'year', 'month'])
@@ -117,8 +115,12 @@ def find_alpha(train_x, train_y, val_x, val_y):
             alpha_optim = alpha
     return alpha_optim, score
 
-def run(time_lag, eof_modes, random_seed, station_id):
+def run(time_lag, eof_modes, random_seed, station_id, peak):
     print('Time: ', time_lag)
+    if peak>3 and peak<12:
+        lag3=True
+    else:
+        lag3=False
     if lag3:
         predictor_high = [include+'_lag3']
     else:
@@ -140,8 +142,8 @@ def run(time_lag, eof_modes, random_seed, station_id):
     print(len(all_predictor))
     r2s_ens = []
     for station in [station_id]: # train only one station to be faster. 
-        _, peak = get_peak_month(station, real_df=real_df)
-        # print(station, peak)
+        # _, peak = get_peak_month(station, real_df=real_df)
+        print(station, peak)
         if peak==1:
             months = [12, peak, peak+1]
         elif peak==12:
@@ -246,9 +248,9 @@ def run(time_lag, eof_modes, random_seed, station_id):
             val_input = val_input.reset_index(drop=True)
             test_input = station_test_dfs[all_predictor]
             if lag3:
-                path = '/p/lustre2/shiduan/AutogluonModels-ssp/'+include+'-include/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
+                path = '/p/lustre2/shiduan/AutogluonModels-ssp/'+'include-'+include+'/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
             else:
-                path = '/p/lustre2/shiduan/AutogluonModels-ssp/'+include+'-include/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
+                path = '/p/lustre2/shiduan/AutogluonModels-ssp/'+'include-'+include+'/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
             model = TabularPredictor(label='Q_sim', verbosity=0, 
             path=path).fit(
             train_data=train_input, tuning_data=val_input)
@@ -259,9 +261,9 @@ def run(time_lag, eof_modes, random_seed, station_id):
             val_input = val_input.reset_index(drop=True)
             test_input = station_test_dfs[all_predictor]
             if lag3:
-                path = '/p/lustre2/shiduan/AutogluonModels-LR-ssp/'+include+'-include/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
+                path = '/p/lustre2/shiduan/AutogluonModels-LR-ssp/'+'include-'+include+'/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
             else:
-                path = '/p/lustre2/shiduan/AutogluonModels-LR-ssp/'+include+'-include/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
+                path = '/p/lustre2/shiduan/AutogluonModels-LR-ssp/'+'include-'+include+'/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
             model = TabularPredictor(label='Q_sim', verbosity=0, 
             path=path).fit(
             train_data=train_input, tuning_data=val_input, hyperparameters=custom_hyperparameters)
@@ -278,29 +280,30 @@ def run(time_lag, eof_modes, random_seed, station_id):
         r2s_ens.append(r2)
         print('R2: ', r2)
         if mode_smooth:
-            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-smooth-ssp/'+'include-'+include+str(station)+'/'
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-smooth-ssp/'+'include-'+include+'/'+'/'+str(station)+'/'
         else:
-            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-ssp/'+'include-'+include+str(station)+'/'
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-ssp/'+'include-'+include+'/'+'/'+str(station)+'/'
         if not os.path.exists(path):
             os.makedirs(path)
         if lag3:
-            file = path+station+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-include-'+include+'-real_lag3.npy'
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real_lag3.npy'
         else:
-            file = path+station+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-include-'+include+'-real.npy'
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real.npy'
         np.save(file, 
-                station_train_dfs['Q_sim'].values.reshape(-1, 1))
+                station_test_dfs['Q_sim'].values.reshape(-1, 1))
         if lag3:
-            file = path+station+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-include-'+include+'-pred_lag3.npy'
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred_lag3.npy'
         else:
-            file = path+station+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-include-'+include+'-pred.npy'
+            file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred.npy'
         np.save(file, 
                 y_pred.reshape(-1, 1))
 
     return r2s_ens
 
 path = '/p/lustre2/shiduan/'
-for station in station_ids:
+for ind, station in enumerate(station_ids):
     print(station)
+    peak = station_peaks[ind]
     r2_max = 0
     time_best = 0
     if smooth:
@@ -321,6 +324,6 @@ for station in station_ids:
                 time_best = lag
                 r2_max = r2
         print(station, ' ', time_best)
-    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=42, station_id=station)
+    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=42, station_id=station, peak=peak)
 
 print('Done')
