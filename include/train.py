@@ -113,6 +113,7 @@ def run(time_lag, test_gcm, eof_modes, random_seed, station_id, peak):
         predictor_high = [include+'_lag3']
     else:
         predictor_high = [include]
+    
     aux = []
     if time_lag>0:
         for k in range(1, time_lag+1):

@@ -21,7 +21,7 @@ custom_hyperparameters[CustomLRModel] = {}
 import argparse
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--smooth', type=int, default=0)
+    parser.add_argument('--smooth', type=int, default=1)
     parser.add_argument('--eof', type=int)
     parser.add_argument('--pre_season', type=int, default=0)
     parser.add_argument('--model_type', choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR'])
@@ -275,9 +275,12 @@ def run(test_gcm, eof_modes, random_seed, station_id):
             r2, records, target_pred, last_pred_test, train_pred = station_iteration(station_train_dfs=station_train_dfs, all_predictor=all_predictor,
                                         station_test_dfs=station_test_dfs, station_val_dfs=station_val_dfs, norm=False, plot=False)
             if lag3:
-                file = '/p/lustre2/shiduan/LOD-smooth/'+station+'/model-records-EOF-'+str(eof)+'-lag3'
+                file = '/p/lustre2/shiduan/LOD-smooth/'+station+'/model-records-EOF-'+str(eof)+'-seed-'+str(random_seed)+'-lag3'
             else:
-                file = '/p/lustre2/shiduan/LOD-smooth/'+station+'/model-records-EOF-'+str(eof)
+                file = '/p/lustre2/shiduan/LOD-smooth/'+station+'/model-records-EOF-'+str(eof)+'-seed-'+str(random_seed)
+            path = '/p/lustre2/shiduan/LOD-smooth/'+station+'/'
+            if not os.path.exists(path):
+                os.makedirs(path)
             with open(file+'-seed-'+str(random_seed), 'wb') as pfile:
                 pickle.dump(records, pfile)
             y_pred_train = train_pred
