@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import pickle
+import multiprocessing
+
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 import sys
@@ -21,13 +23,9 @@ custom_hyperparameters[CustomLRModel] = {}
 import argparse
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--include', type=str)
-    parser.add_argument('--keep', type=int) # how many features already kept in the model. 
     parser.add_argument('--smooth', type=int, default=1)
-    parser.add_argument('--eof', type=int)
-    parser.add_argument('--station', type=int)
-    # parser.add_argument('--pre_season', type=int, default=0)
     parser.add_argument('--model_type', choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR'])
+    parser.add_argument('--level', type=int) # how many variables are kept initially. 
     args = vars(parser.parse_args())
     return args
 
@@ -49,19 +47,14 @@ mods = ['PNA_eof_1', 'PNA_eof_2', 'PNA_eof_3', 'PNA_eof_4', 'PNA_eof_5', 'PNA_eo
         'NAO_eof_1', 'NAO_eof_2', 'NAO_eof_3', 'NAO_eof_4', 'NAO_eof_5', 'NAO_eof_6', 
         'co2', 'nino34']
 args = get_args()
-include = args['include']
-eof = args['eof']
 smooth = args['smooth']
-keep = args['keep']
-if keep is not None:
-    print('Number of features to keep: ', keep)
-station_index = args['station']
+eof_modes=6
 if smooth==0:
     mode_smooth=False
 else:
     mode_smooth=True
-print('Include: ', include)
-
+level = args['level']
+print('level: ', level)
 model_type = args['model_type']
 hist_co2 = pd.read_csv('../historical_co2.csv', index_col=['wy', 'year', 'month'])
 
@@ -104,67 +97,70 @@ def find_alpha(train_x, train_y, val_x, val_y):
             alpha_optim = alpha
     return alpha_optim, score
 
+# def run(time_lag, test_gcm, eof_modes, random_seed, modes_keep):
 def run(args):
-    time_best, test_gcm, eof_modes, random_seed, station_id, peak, modes_keep = args
+    time_lag, test_gcm, eof_modes, random_seed, modes_keep = args
     # print('Time: ', time_lag, ' test: ', test_gcm)
-    if peak>3 and peak<12:
-        lag3=True
-    else:
-        lag3=False
-    predictor_high = []
-    '''if lag3:
-        predictor_high = [include+'_lag3']
-    else:
-        predictor_high = [include]'''
-    if modes_keep is not None:
-        if isinstance(modes_keep, list):
-            keep_name = ''
-            for p in modes_keep:
-                keep_name = keep_name+p
-            print('Keep_name: ', keep_name)
-            if lag3:
-                for p in modes_keep:
-                    if include!=p:
-                        predictor_high.append(p+'_lag3')
-                    else:
-                        sys.exit() # This is already in the model. 
-            else:
-                for p in modes_keep:
-                    if include!=p:
-                        predictor_high.append(p)
-                    else:
-                        sys.exit() # This is already in the model. 
+    r2s_ens = []
+    station_pred = {}
+    station_real = {}
+    for ind, station in enumerate(station_ids[:]): # train iteration. 
+        # peak = station_peaks[ind]
+        peak = station_peaks[station_ids.index(station)] # if slice station_ids
+        print(station, peak)
+        # prepare data. 
+        if peak>3 and peak<12:
+            lag3=True
         else:
-            keep_name = modes_keep
-            print('Keep_name: ', keep_name)
-            if lag3:
-                if include!=modes_keep:
+            lag3=False
+        predictor_high = []
+        if modes_keep is not None:
+            if isinstance(modes_keep, list):
+                keep_name = ''
+                for p in modes_keep:
+                    keep_name = keep_name+p
+                print('Keep_name: ', keep_name)
+                if lag3:
+                    for p in modes_keep:
+                        predictor_high.append(p+'_lag3')
+                else:
+                    for p in modes_keep:
+                        predictor_high.append(p)
+            else:
+                keep_name = modes_keep
+                print('Keep_name: ', keep_name)
+                if lag3:
                     predictor_high.append(modes_keep+'_lag3')
                 else:
-                    sys.exit()
-            else:
-                if include!=p:
                     predictor_high.append(modes_keep)
-                else:
-                    sys.exit()
-    aux = []
-    if time_lag>0:
-        for k in range(1, time_lag+1):
-            predictor_aux = [m+'_lag'+str(k) for m in predictor_high]
-            aux = aux+predictor_aux
-    all_predictor = predictor_high+aux
-    aux = []
-    if time_lag>0:
-        for k in range(1, time_lag+1):
-            predictor_aux = [m+'_lag'+str(k) for m in predictor_high]
-            aux = aux+predictor_aux
-    all_predictor = predictor_high+aux
-    if model_type.upper()=='AUTOML' or model_type.upper()=='AUTOLR':
-        all_predictor.append('Q_sim')
-    print(len(all_predictor), ' predictors: ', all_predictor)
-    r2s_ens = []
-    for station in [station_id]: # train only one station to be faster. 
-        # _, peak = get_peak_month(station, real_df=real_df)
+        aux = []
+        if time_lag>0:
+            for k in range(1, time_lag+1):
+                predictor_aux = [m+'_lag'+str(k) for m in predictor_high]
+                aux = aux+predictor_aux
+        all_predictor = predictor_high+aux
+        aux = []
+        if time_lag>0:
+            for k in range(1, time_lag+1):
+                predictor_aux = [m+'_lag'+str(k) for m in predictor_high]
+                aux = aux+predictor_aux
+        all_predictor = predictor_high+aux
+        if model_type.upper()=='AUTOML' or model_type.upper()=='AUTOLR':
+            all_predictor.append('Q_sim')
+        print(len(all_predictor), ' predictors: ', all_predictor)
+        if peak==1:
+            months = [12, peak, peak+1]
+        elif peak==12:
+            months = [peak-1, peak, 1]
+        else:
+            months = [peak-1, peak, peak+1]
+        mam_dfs_IPSL_hist = get_seasonal_data(IPSL_hist_dfs, months=months, smooth_mode=mode_smooth)
+        mam_dfs_ACCESS_hist = get_seasonal_data(ACCESS_hist_dfs, months=months, smooth_mode=mode_smooth)
+        mam_dfs_MIROC_hist = get_seasonal_data(MIROC_hist_dfs, months=months, smooth_mode=mode_smooth)
+        mam_dfs_MPI_hist = get_seasonal_data(MPI_hist_dfs, months=months, smooth_mode=mode_smooth)
+        mam_dfs_CNRM_hist = get_seasonal_data(CNRM_hist_dfs, months=months, smooth_mode=mode_smooth)
+        mam_dfs_EC_hist = get_seasonal_data(EC_hist_dfs, months=months, smooth_mode=mode_smooth)
+        # Iterate through validation dataset. 
         all_dfs = []
         train_dfs = []
         test_dfs = []
@@ -247,9 +243,9 @@ def run(args):
             val_input = val_input.reset_index(drop=True)
             test_input = station_test_dfs[all_predictor]
             if lag3:
-                path = '/p/lustre2/shiduan/AutogluonModels/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3-'+'keep-'+str(keep)
+                path = '/p/lustre2/shiduan/AutogluonModels/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
             else:
-                path = '/p/lustre2/shiduan/AutogluonModels/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'keep-'+str(keep)
+                path = '/p/lustre2/shiduan/AutogluonModels/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
             model = TabularPredictor(label='Q_sim', verbosity=0, 
             path=path).fit(
             train_data=train_input, tuning_data=val_input)
@@ -283,7 +279,7 @@ def run(args):
         else:
             path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions/'+keep_name+'-include'+'/'+str(station)+'/'
         if not os.path.exists(path):
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
         if lag3:
             file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real_lag3.npy'
         else:
@@ -296,96 +292,87 @@ def run(args):
             file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-pred.npy'
         np.save(file, 
                 y_pred.reshape(-1, 1))
-
-    return r2s_ens, y_pred, station_test_dfs['Q_sim'].values.reshape(-1, 1)
+        station_pred[station] = y_pred
+        station_real[station] = station_test_dfs['Q_sim'].values.reshape(-1, 1)
+    return r2s_ens, station_pred, station_real
 
 path = '/p/lustre2/shiduan/'
-for ind, station in enumerate(station_ids[station_index:station_index+1]):
-    # peak = station_peaks[ind]
-    peak = station_peaks[station_ids.index(station)] # if slice station_ids
-    print(station, peak)
-    # prepare data. 
-    if peak==1:
-        months = [12, peak, peak+1]
-    elif peak==12:
-        months = [peak-1, peak, 1]
-    else:
-        months = [peak-1, peak, peak+1]
-    mam_dfs_IPSL_hist = get_seasonal_data(IPSL_hist_dfs, months=months, smooth_mode=mode_smooth)
-    mam_dfs_ACCESS_hist = get_seasonal_data(ACCESS_hist_dfs, months=months, smooth_mode=mode_smooth)
-    mam_dfs_MIROC_hist = get_seasonal_data(MIROC_hist_dfs, months=months, smooth_mode=mode_smooth)
-    mam_dfs_MPI_hist = get_seasonal_data(MPI_hist_dfs, months=months, smooth_mode=mode_smooth)
-    mam_dfs_CNRM_hist = get_seasonal_data(CNRM_hist_dfs, months=months, smooth_mode=mode_smooth)
-    mam_dfs_EC_hist = get_seasonal_data(EC_hist_dfs, months=months, smooth_mode=mode_smooth)
-    # Iterate through validation dataset. 
+modes_keep = []
 
-    modes_keep = []
-    results_station = {}
-    results = []
-    for level in range(5):
-        print('Level: ', level)
-        r2_max = -100
-        mod_max = None
-        for mod in mods:
-            if mod not in modes_keep:
-                modes_keep.append(mod)
-                preds = []
-                reals = []
-                time_best = 0
-                test_gcms = ['IPSL', 'EC', 'ACCESS', 'MPI', 'MIROC', 'CNRM']
-                random_seeds = [0, 1, 2, 3, 4, 5]
-                # station_ind_all = np.arange(25)
+if level>0:
+    for i in range(level):
+        path = '/p/lustre2/shiduan/'+model_type.upper()+'-median-results/level-'+str(i)+'.p'
+        with open(path, 'rb') as pfile:
+            results = pickle.load(pfile)
+            modes_keep.append(results['max_mode'])
 
-                pool = multiprocessing.Pool(6)
-                args_list = [(time_best, [gcm], eof_modes, seed, station_id, peak, modes_keep) 
-                                for gcm, seed in zip(test_gcms, random_seeds)]
-                
-                results = pool.map(run, args_list)
-                pool.close()
-                pool.join()
-                # Unpack the results
-                r2s_ens_list, pred_list, real_list = zip(*results)
-                
-                # Now you have separate lists for each set of results
-                r2s_ens0, pred0, real0 = r2s_ens_list[0], pred_list[0], real_list[0]
-                r2s_ens1, pred1, real1 = r2s_ens_list[1], pred_list[1], real_list[1]
-                r2s_ens1, pred2, real2 = r2s_ens_list[2], pred_list[2], real_list[2]
-                r2s_ens1, pred3, real3 = r2s_ens_list[3], pred_list[3], real_list[3]
-                r2s_ens1, pred4, real4 = r2s_ens_list[4], pred_list[4], real_list[4]
-                r2s_ens1, pred5, real5 = r2s_ens_list[5], pred_list[5], real_list[5]
-                
-                preds.append(pred0.reshape(-1, 1))
-                reals.append(real0.reshape(-1, 1))
+level_results = {}
+print('Level: ', level)
+mod_median_r2s = []
+candidate_list = []
+for mod in mods:
+    if mod not in modes_keep:
+        modes_keep.append(mod)
+        candidate_list.append(mod)
+        preds = []
+        reals = []
+        time_best = 0
+        test_gcms = ['IPSL', 'EC', 'ACCESS', 'MPI', 'MIROC', 'CNRM']
+        random_seeds = [0, 1, 2, 3, 4, 5]
+        # station_ind_all = np.arange(25)
+
+        pool = multiprocessing.Pool(6)
+        args_list = [(time_best, [gcm], eof_modes, seed, modes_keep) 
+                        for gcm, seed in zip(test_gcms, random_seeds)]
+        
+        results = pool.map(run, args_list)
+        pool.close()
+        pool.join()
+
+        # Unpack the results
+        r2s_ens_list, pred_list, real_list = zip(*results)
+        
+        # Now you have separate lists for each set of results
+        r2s_ens0, pred0, real0 = r2s_ens_list[0], pred_list[0], real_list[0]
+        r2s_ens1, pred1, real1 = r2s_ens_list[1], pred_list[1], real_list[1]
+        r2s_ens1, pred2, real2 = r2s_ens_list[2], pred_list[2], real_list[2]
+        r2s_ens1, pred3, real3 = r2s_ens_list[3], pred_list[3], real_list[3]
+        r2s_ens1, pred4, real4 = r2s_ens_list[4], pred_list[4], real_list[4]
+        r2s_ens1, pred5, real5 = r2s_ens_list[5], pred_list[5], real_list[5]
+        r2s = []
+        for station in station_ids:
+            station_pred0 = pred0[station]
+            station_pred1 = pred1[station]
+            station_pred2 = pred2[station]
+            station_pred3 = pred3[station]
+            station_pred4 = pred4[station]
+            station_pred5 = pred5[station]
+            station_real0 = real0[station]
+            station_real1 = real1[station]
+            station_real2 = real2[station]
+            station_real3 = real3[station]
+            station_real4 = real4[station]
+            station_real5 = real5[station]
+            pred_all = np.concatenate((station_pred0, station_pred1, station_pred2, station_pred3,
+                                        station_pred4, station_pred5), axis=0)
+            real_all = np.concatenate((station_real0, station_real1, station_real2, station_real3,
+                                        station_real4, station_real5), axis=0)
             
-                preds.append(pred1.reshape(-1, 1))
-                reals.append(real1.reshape(-1, 1))
-                
-                preds.append(pred2.reshape(-1, 1))
-                reals.append(real2.reshape(-1, 1))
-                
-                preds.append(pred3.reshape(-1, 1))
-                reals.append(real3.reshape(-1, 1))
-                
-                preds.append(pred4.reshape(-1, 1))
-                reals.append(real4.reshape(-1, 1))
-                
-                preds.append(pred5.reshape(-1, 1))
-                reals.append(real5.reshape(-1, 1))
-                preds = np.concatenate(preds, axis=0)
-                reals = np.concatenate(reals, axis=0)
-                r2 = r2_score(reals, preds)
-                print('Overall r2: ', r2)
-                if r2>r2_max:
-                    r2_max = r2
-                    mod_max = mod
-                    print('max now: ', mod_max, r2_max)
-                modes_keep.remove(mod)
-        # after iteration of all modes. 
-        modes_keep.append(mod_max)
-        results.append((mod_max, r2_max))
-        print('max: ', mod_max, r2_max)
-        print('results: ', results)
-    results_station[station]=results
+            r2 = r2_score(real_all, pred_all) # this is the station performance
+            r2s.append(r2)
+        mod_median_r2s.append(np.median(r2s))
+        level_results[mod] = np.median(r2s)
+        print('Overall r2 for ' + mod + ' : ', np.median(r2s))
+        modes_keep.remove(mod)
+# find the maximum median r2:
+max_r2 = np.max(mod_median_r2s)
+mod_max = candidate_list[np.where(mod_median_r2s==max_r2)[0][0]]    
+print('max: ', mod_max, max_r2)
+modes_keep.append(mod_max)
+level_results['max_mode'] = mod_max
+path = '/p/lustre2/shiduan/'+model_type.upper()+'-median-results/level-'+str(level)+'.p'
+with open(path, 'wb') as pfile:
+    pickle.dump(level_results, pfile)
+    
 print('Done')
-with open('resultsPass/'+model_type.upper()+'/'+station+'-'+model_type.upper()+'.p', 'wb') as pfile:
-    pickle.dump(results, pfile)
+print(level_results)
