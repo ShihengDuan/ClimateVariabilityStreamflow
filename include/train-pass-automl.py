@@ -22,13 +22,12 @@ custom_hyperparameters[CustomLRModel] = {}
 import argparse
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--include', type=str)
-    parser.add_argument('--keep', type=int) # how many features already kept in the model. 
+    parser.add_argument('--level', type=int, default=0) # how many features already kept in the model. 
     parser.add_argument('--smooth', type=int, default=1)
     parser.add_argument('--eof', type=int)
     parser.add_argument('--station', type=int)
-    # parser.add_argument('--pre_season', type=int, default=0)
-    parser.add_argument('--model_type', choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR'])
+    parser.add_argument('--model_type', 
+                        choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR'], default='AutoML')
     args = vars(parser.parse_args())
     return args
 
@@ -50,18 +49,16 @@ mods = ['PNA_eof_1', 'PNA_eof_2', 'PNA_eof_3', 'PNA_eof_4', 'PNA_eof_5', 'PNA_eo
         'NAO_eof_1', 'NAO_eof_2', 'NAO_eof_3', 'NAO_eof_4', 'NAO_eof_5', 'NAO_eof_6', 
         'co2', 'nino34']
 args = get_args()
-include = args['include']
 eof = args['eof']
 smooth = args['smooth']
-keep = args['keep']
-if keep is not None:
-    print('Number of features to keep: ', keep)
+level = args['level']
+if level is not None:
+    print('level: ', level)
 station_index = args['station']
 if smooth==0:
     mode_smooth=False
 else:
     mode_smooth=True
-print('Include: ', include)
 
 model_type = args['model_type']
 hist_co2 = pd.read_csv('../historical_co2.csv', index_col=['wy', 'year', 'month'])
@@ -125,29 +122,20 @@ def run(args):
             print('Keep_name: ', keep_name)
             if lag3:
                 for p in modes_keep:
-                    if include!=p:
-                        predictor_high.append(p+'_lag3')
-                    else:
-                        sys.exit() # This is already in the model. 
+                    predictor_high.append(p+'_lag3')
             else:
                 for p in modes_keep:
-                    if include!=p:
-                        predictor_high.append(p)
-                    else:
-                        sys.exit() # This is already in the model. 
+                    predictor_high.append(p)
+
         else:
             keep_name = modes_keep
             print('Keep_name: ', keep_name)
             if lag3:
-                if include!=modes_keep:
-                    predictor_high.append(modes_keep+'_lag3')
-                else:
-                    sys.exit()
+                predictor_high.append(modes_keep+'_lag3')
+                
             else:
-                if include!=p:
-                    predictor_high.append(modes_keep)
-                else:
-                    sys.exit()
+                predictor_high.append(modes_keep)
+                
     aux = []
     if time_lag>0:
         for k in range(1, time_lag+1):
@@ -248,9 +236,9 @@ def run(args):
             val_input = val_input.reset_index(drop=True)
             test_input = station_test_dfs[all_predictor]
             if lag3:
-                path = '/p/lustre2/shiduan/AutogluonModels/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3-'+'keep-'+str(keep)
+                path = '/p/lustre2/shiduan/AutogluonModels/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
             else:
-                path = '/p/lustre2/shiduan/AutogluonModels/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'keep-'+str(keep)
+                path = '/p/lustre2/shiduan/AutogluonModels/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
             model = TabularPredictor(label='Q_sim', verbosity=0, 
             path=path).fit(
             train_data=train_input, tuning_data=val_input)
@@ -261,9 +249,9 @@ def run(args):
             val_input = val_input.reset_index(drop=True)
             test_input = station_test_dfs[all_predictor]
             if lag3:
-                path = '/p/lustre2/shiduan/AutogluonModels-LR/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'+'keep-'+str(keep)
+                path = '/p/lustre2/shiduan/AutogluonModels-LR/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
             else:
-                path = '/p/lustre2/shiduan/AutogluonModels-LR/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'keep-'+str(keep)
+                path = '/p/lustre2/shiduan/AutogluonModels-LR/'+keep_name+'-include'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
             model = TabularPredictor(label='Q_sim', verbosity=0, 
             path=path).fit(
             train_data=train_input, tuning_data=val_input, hyperparameters=custom_hyperparameters)
@@ -284,7 +272,7 @@ def run(args):
         else:
             path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions/'+keep_name+'-include'+'/'+str(station)+'/'
         if not os.path.exists(path):
-            os.makedirs(path, exist_ok=True)
+            os.makedirs(path)
         if lag3:
             file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real_lag3.npy'
         else:
@@ -301,6 +289,14 @@ def run(args):
     return r2s_ens, y_pred, station_test_dfs['Q_sim'].values.reshape(-1, 1)
 
 path = '/p/lustre2/shiduan/'
+modes_keep = []
+if level>0:
+    for i in range(level):
+        with open('resultsPass/'+model_type.upper()+'/'+station_ids[station_index]+'-'+model_type.upper()+'-level-'+str(i)+'.p', 'rb') as pfile:
+            results = pickle.load(pfile)
+        mod_max = results['max_mod']
+        modes_keep.append(mod_max)
+
 for ind, station in enumerate(station_ids[station_index:station_index+1]):
     # peak = station_peaks[ind]
     peak = station_peaks[station_ids.index(station)] # if slice station_ids
@@ -319,74 +315,75 @@ for ind, station in enumerate(station_ids[station_index:station_index+1]):
     mam_dfs_CNRM_hist = get_seasonal_data(CNRM_hist_dfs, months=months, smooth_mode=mode_smooth)
     mam_dfs_EC_hist = get_seasonal_data(EC_hist_dfs, months=months, smooth_mode=mode_smooth)
     # Iterate through validation dataset. 
-
-    modes_keep = []
     results_station = {}
-    results = []
-    for level in range(5):
-        print('Level: ', level)
-        r2_max = -100
-        mod_max = None
-        for mod in mods:
-            if mod not in modes_keep:
-                modes_keep.append(mod)
-                preds = []
-                reals = []
-                time_best = 0
-                test_gcms = ['IPSL', 'EC', 'ACCESS', 'MPI', 'MIROC', 'CNRM']
-                random_seeds = [0, 1, 2, 3, 4, 5]
-                # station_ind_all = np.arange(25)
+    results = {}
+    print('Level: ', level)
+    r2_max = -100
+    mod_max = None
+    for mod in mods:
+        if mod not in modes_keep:
+            modes_keep.append(mod)
+            preds = []
+            reals = []
+            time_best = 0
+            test_gcms = ['IPSL', 'EC', 'ACCESS', 'MPI', 'MIROC', 'CNRM']
+            random_seeds = [0, 1, 2, 3, 4, 5]
+            # station_ind_all = np.arange(25)
 
-                pool = multiprocessing.Pool(6)
-                args_list = [(time_best, [gcm], eof, seed, station, peak, modes_keep) 
-                                for gcm, seed in zip(test_gcms, random_seeds)]
-                
-                resultspool = pool.map(run, args_list)
-                pool.close()
-                pool.join()
-                # Unpack the results
-                r2s_ens_list, pred_list, real_list = zip(*resultspool)
-                
-                # Now you have separate lists for each set of results
-                r2s_ens0, pred0, real0 = r2s_ens_list[0], pred_list[0], real_list[0]
-                r2s_ens1, pred1, real1 = r2s_ens_list[1], pred_list[1], real_list[1]
-                r2s_ens1, pred2, real2 = r2s_ens_list[2], pred_list[2], real_list[2]
-                r2s_ens1, pred3, real3 = r2s_ens_list[3], pred_list[3], real_list[3]
-                r2s_ens1, pred4, real4 = r2s_ens_list[4], pred_list[4], real_list[4]
-                r2s_ens1, pred5, real5 = r2s_ens_list[5], pred_list[5], real_list[5]
-                
-                preds.append(pred0.reshape(-1, 1))
-                reals.append(real0.reshape(-1, 1))
+            pool = multiprocessing.Pool(6)
+            args_list = [(time_best, [gcm], eof, seed, station, peak, modes_keep) 
+                            for gcm, seed in zip(test_gcms, random_seeds)]
             
-                preds.append(pred1.reshape(-1, 1))
-                reals.append(real1.reshape(-1, 1))
-                
-                preds.append(pred2.reshape(-1, 1))
-                reals.append(real2.reshape(-1, 1))
-                
-                preds.append(pred3.reshape(-1, 1))
-                reals.append(real3.reshape(-1, 1))
-                
-                preds.append(pred4.reshape(-1, 1))
-                reals.append(real4.reshape(-1, 1))
-                
-                preds.append(pred5.reshape(-1, 1))
-                reals.append(real5.reshape(-1, 1))
-                preds = np.concatenate(preds, axis=0)
-                reals = np.concatenate(reals, axis=0)
-                r2 = r2_score(reals, preds)
-                print('Overall r2: ', r2)
-                if r2>r2_max:
-                    r2_max = r2
-                    mod_max = mod
-                    print('max now: ', mod_max, r2_max)
-                modes_keep.remove(mod)
-        # after iteration of all modes. 
-        modes_keep.append(mod_max)
-        results.append((mod_max, r2_max))
-        print('max: ', mod_max, r2_max)
-        print('results: ', results)
-    results_station[station]=results
+            resultspool = pool.map(run, args_list)
+            pool.close()
+            pool.join()
+            # Unpack the results
+            r2s_ens_list, pred_list, real_list = zip(*resultspool)
+            
+            # Now you have separate lists for each set of results
+            r2s_ens0, pred0, real0 = r2s_ens_list[0], pred_list[0], real_list[0]
+            r2s_ens1, pred1, real1 = r2s_ens_list[1], pred_list[1], real_list[1]
+            r2s_ens1, pred2, real2 = r2s_ens_list[2], pred_list[2], real_list[2]
+            r2s_ens1, pred3, real3 = r2s_ens_list[3], pred_list[3], real_list[3]
+            r2s_ens1, pred4, real4 = r2s_ens_list[4], pred_list[4], real_list[4]
+            r2s_ens1, pred5, real5 = r2s_ens_list[5], pred_list[5], real_list[5]
+            
+            preds.append(pred0.reshape(-1, 1))
+            reals.append(real0.reshape(-1, 1))
+        
+            preds.append(pred1.reshape(-1, 1))
+            reals.append(real1.reshape(-1, 1))
+            
+            preds.append(pred2.reshape(-1, 1))
+            reals.append(real2.reshape(-1, 1))
+            
+            preds.append(pred3.reshape(-1, 1))
+            reals.append(real3.reshape(-1, 1))
+            
+            preds.append(pred4.reshape(-1, 1))
+            reals.append(real4.reshape(-1, 1))
+            
+            preds.append(pred5.reshape(-1, 1))
+            reals.append(real5.reshape(-1, 1))
+            preds = np.concatenate(preds, axis=0)
+            reals = np.concatenate(reals, axis=0)
+            r2 = r2_score(reals, preds)
+            print('Overall r2: ', r2)
+            results[mod] = r2
+            if r2>r2_max:
+                r2_max = r2
+                mod_max = mod
+                print('max now: ', mod_max, r2_max)
+            modes_keep.remove(mod)
+    # after iteration of all modes. 
+    modes_keep.append(mod_max)
+    results['max_mod'] = mod_max
+    print('max: ', mod_max, r2_max)
+    print('results: ', results)
+results_station[station]=results
 print('Done')
-with open('resultsPass/'+model_type.upper()+'/'+station+'-'+model_type.upper()+'.p', 'wb') as pfile:
+path = 'resultsPass/'+model_type.upper()+'/'
+if not os.path.exists(path):
+    os.makedirs(path, exist_ok=True)
+with open('resultsPass/'+model_type.upper()+'/'+station+'-'+model_type.upper()+'-level-'+str(level)+'.p', 'wb') as pfile:
     pickle.dump(results, pfile)
