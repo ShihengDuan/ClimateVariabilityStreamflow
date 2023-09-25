@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.getcwd()))
 from tools import build_df, load_data, get_peak_month
 from iteration import station_iteration, get_seasonal_data
 from sklearn.linear_model import Lasso, Ridge, LinearRegression
+from sklearn.cross_decomposition import PLSRegression
 from iteration import get_prediction
 from sklearn.model_selection import train_test_split
 from autogluon.tabular import TabularPredictor
@@ -28,7 +29,8 @@ def get_args():
     parser.add_argument('--eof', type=int)
     parser.add_argument('--station', type=int)
     # parser.add_argument('--pre_season', type=int, default=0)
-    parser.add_argument('--model_type', choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR'])
+    parser.add_argument('--model_type', 
+                        choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR', 'PLS'])
     args = vars(parser.parse_args())
     return args
 
@@ -104,6 +106,18 @@ def find_alpha(train_x, train_y, val_x, val_y):
             r2 = score
             alpha_optim = alpha
     return alpha_optim, score
+
+def find_components(train_x, train_y, val_x, val_y):
+    r2 = -100
+    n_optim = 0
+    n_features = train_x.shape[1]
+    for n_components in range(1, n_features+1):
+        model = PLSRegression(n_components=n_components, max_iter=10000).fit(train_x, train_y)
+        score = model.score(val_x, val_y)
+        if score>r2:
+            r2 = score
+            n_optim = n_components
+    return n_optim, r2
 
 def run(args):
     time_lag, test_gcm, eof_modes, random_seed, station_id, peak, modes_keep = args
@@ -242,6 +256,13 @@ def run(args):
                 ml_model = Lasso
             model = ml_model(alpha=alpha_optim).fit(train_x, station_train_dfs['Q_sim'])
             y_pred = model.predict(test_x)
+        if model_type.upper()=='PLS':
+            n_optim, score = find_components(train_x=train_x, train_y=station_train_dfs['Q_sim'],
+                                            val_x=val_x, val_y=station_val_dfs['Q_sim'])
+            print('Components and score: ', n_optim, score)
+            model = PLSRegression(n_components=n_optim).fit(train_x, station_train_dfs['Q_sim'])
+            y_pred = model.predict(test_x)
+            
         if model_type.upper()=='AUTOML':
             train_input = station_train_dfs[all_predictor]
             val_input = station_val_dfs[all_predictor]

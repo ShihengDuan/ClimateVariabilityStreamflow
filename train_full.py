@@ -9,6 +9,7 @@ sys.path.append(os.path.dirname(os.getcwd()))
 from tools import build_df, load_data, get_peak_month
 from iteration import station_iteration, get_seasonal_data
 from sklearn.linear_model import Lasso, Ridge, LinearRegression
+from sklearn.cross_decomposition import PLSRegression
 from iteration import get_prediction
 from sklearn.model_selection import train_test_split
 from autogluon.tabular import TabularPredictor
@@ -24,7 +25,8 @@ def get_args():
     parser.add_argument('--smooth', type=int, default=1)
     parser.add_argument('--eof', type=int)
     parser.add_argument('--pre_season', type=int, default=0)
-    parser.add_argument('--model_type', choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR'])
+    parser.add_argument('--model_type', 
+                        choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR', 'PLS'])
     args = vars(parser.parse_args())
     return args
 
@@ -102,6 +104,18 @@ def find_alpha(train_x, train_y, val_x, val_y):
             r2 = score
             alpha_optim = alpha
     return alpha_optim, score
+
+def find_components(train_x, train_y, val_x, val_y):
+    r2 = -100
+    n_optim = 0
+    n_features = train_x.shape[1]
+    for n_components in range(1, n_features+1):
+        model = PLSRegression(n_components=n_components, max_iter=10000).fit(train_x, train_y)
+        score = model.score(val_x, val_y)
+        if score>r2:
+            r2 = score
+            n_optim = n_components
+    return n_optim, r2
 
 def run(test_gcm, eof_modes, random_seed, station_id):
     print('test: ', test_gcm, ' eof: ', eof_modes)
@@ -209,7 +223,22 @@ def run(test_gcm, eof_modes, random_seed, station_id):
         # print(val_input.index.duplicated(keep=False))
         val_x = val_x.reset_index(drop=True)
         test_x = station_test_dfs[all_predictor]
-
+        if model_type.upper()=='PLS':
+            n_optim, score = find_components(train_x=train_x, train_y=station_train_dfs['Q_sim'],
+                                            val_x=val_x, val_y=station_val_dfs['Q_sim'])
+            print('Components and score: ', n_optim, score)
+            model = PLSRegression(n_components=n_optim).fit(train_x, station_train_dfs['Q_sim'])
+            y_pred = model.predict(test_x)
+            y_pred_train = model.predict(train_x)
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/'
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            if lag3:
+                file = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(random_seed)+'_lag3'
+            else:
+                file = '/p/lustre2/shiduan/'+model_type.upper()+'-smooth/LS-'+str(station)+'-EOF-'+str(eof)+'-seed-'+str(random_seed)
+            with open(file, 'wb') as pfile:
+                pickle.dump(model, pfile)
         if model_type.upper()=='RIDGE' or model_type.upper()=='LASSO':
             alpha_optim, score = find_alpha(train_x=train_x, train_y=station_train_dfs['Q_sim'],
                                             val_x=val_x, val_y=station_val_dfs['Q_sim'])
@@ -322,7 +351,7 @@ def run(test_gcm, eof_modes, random_seed, station_id):
                 y_pred_train.reshape(-1, 1))
     return r2s_ens
 
-for station in station_ids:
+for station in station_ids[-1:]:
     print(station)    
     r2s_ens = run(eof_modes=eof, test_gcm=['IPSL'], random_seed=0, station_id=station)
     r2s_ens = run(eof_modes=eof, test_gcm=['EC'], random_seed=1, station_id=station)

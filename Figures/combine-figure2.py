@@ -25,13 +25,14 @@ scores_LA_lag3 = np.load('../dataResult/scores_LA_smooth_lag3.npy')
 scores_RD_lag3 = np.load('../dataResult/scores_RD_smooth_lag3.npy')
 scores_LR_lag3  = np.load('../dataResult/scores_LR_smooth_lag3.npy')
 scores_ML_lag3 = np.load('../dataResult/scores_AutoLR_smooth_lag3.npy')
+scores_PLS_lag3 = np.load('../dataResult/scores_PLS_smooth_lag3.npy')
 
 scores_LOD = np.load('../dataResult/scores_LOD_smooth.npy')
 scores_LA = np.load('../dataResult/scores_LA_smooth.npy')
 scores_RD = np.load('../dataResult/scores_RD_smooth.npy')
 scores_LR  = np.load('../dataResult/scores_LR_smooth.npy')
 scores_ML = np.load('../dataResult/scores_AutoLR_smooth.npy')
-
+scores_PLS = np.load('../dataResult/scores_PLS_smooth.npy')
 
 
 lats = []
@@ -48,7 +49,7 @@ norm_re = colors.Normalize(vmin=0, vmax=0.7)
 
 fig = plt.figure(figsize=(11, 15))
 # Grid Design
-gs = GridSpec(7, 7, figure=fig)
+gs = GridSpec(8, 7, figure=fig)
 for i in range(6):
     ind = i+1
     # ax = fig.add_subplot(5, 7, ind+1, projection=cartopy.crs.PlateCarree())
@@ -68,7 +69,7 @@ for i in range(6):
 for i in range(6):
     ind = i+1
     # ax = fig.add_subplot(5, 7, ind+7+1, projection=cartopy.crs.PlateCarree())
-    ax = fig.add_subplot(gs[1, ind], projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(gs[2, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -84,7 +85,7 @@ for i in range(6):
 for i in range(6):
     ind = i+1
     # ax = fig.add_subplot(5, 7, ind+14+1, projection=cartopy.crs.PlateCarree())
-    ax = fig.add_subplot(gs[2, ind], projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(gs[1, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -100,7 +101,7 @@ for i in range(6):
 for i in range(6):
     ind = i+1
     # ax = fig.add_subplot(5, 7, ind+21+1, projection=cartopy.crs.PlateCarree())
-    ax = fig.add_subplot(gs[3, ind], projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(gs[4, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -113,10 +114,28 @@ for i in range(6):
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
     ax.add_feature(cartopy.feature.STATES)
     ax.set_title('LOD-EOF-'+str(ind), fontsize=subsize)
+
+for i in range(6):
+    ind = i+1
+    # ax = fig.add_subplot(5, 7, ind+21+1, projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(gs[3, ind], projection=cartopy.crs.PlateCarree())
+    for j in range(len(station_peaks)):
+        peak = station_peaks[j]
+        if peak>3 and peak<12:
+            marker='^'
+            score = scores_PLS_lag3[j, i]
+        else:
+            marker='o'
+            score = scores_PLS[j, i]
+        ax.scatter(lons[j], lats[j], c=score, norm=norm, 
+                   transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
+    ax.add_feature(cartopy.feature.STATES)
+    ax.set_title('PLS-EOF-'+str(ind), fontsize=subsize)
+
 for i in range(6):
     ind = i+1
     # ax = fig.add_subplot(5, 7, ind+28+1, projection=cartopy.crs.PlateCarree())
-    ax = fig.add_subplot(gs[4, ind], projection=cartopy.crs.PlateCarree())
+    ax = fig.add_subplot(gs[5, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
         peak = station_peaks[j]
         if peak>3 and peak<12:
@@ -151,22 +170,7 @@ for ind, station in enumerate(station_ids):
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('LR-Obs', fontsize=subsize)
 
-# ax_lr = fig.add_subplot(5, 7, 8, projection=cartopy.crs.PlateCarree())
 ax_lr = fig.add_subplot(gs[1, 0], projection=cartopy.crs.PlateCarree())
-for ind, station in enumerate(station_ids):
-    peak = station_peaks[ind]
-    if peak>3 and peak<12:
-        marker='^'
-    else:
-        marker='o'
-    score, eof_number = results[station]['Ridge']
-    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm_re, 
-                   transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
-ax_lr.add_feature(cartopy.feature.STATES)
-ax_lr.set_title('Ridge-Obs', fontsize=subsize)
-
-# ax_lr = fig.add_subplot(5, 7, 15, projection=cartopy.crs.PlateCarree())
-ax_lr = fig.add_subplot(gs[2, 0], projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -179,8 +183,35 @@ for ind, station in enumerate(station_ids):
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('Lasso-Obs', fontsize=subsize)
 
-# ax_lr = fig.add_subplot(5, 7, 22, projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(gs[2, 0], projection=cartopy.crs.PlateCarree())
+for ind, station in enumerate(station_ids):
+    peak = station_peaks[ind]
+    if peak>3 and peak<12:
+        marker='^'
+    else:
+        marker='o'
+    score, eof_number = results[station]['Ridge']
+    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm_re, 
+                   transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
+ax_lr.add_feature(cartopy.feature.STATES)
+ax_lr.set_title('Ridge-Obs', fontsize=subsize)
+
+
 ax_lr = fig.add_subplot(gs[3, 0], projection=cartopy.crs.PlateCarree())
+for ind, station in enumerate(station_ids):
+    peak = station_peaks[ind]
+    if peak>3 and peak<12:
+        marker='^'
+    else:
+        marker='o'
+    score, eof_number = results[station]['PLS']
+    ax_lr.scatter(lons[ind], lats[ind], c=score, norm=norm_re, 
+                   transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
+ax_lr.add_feature(cartopy.feature.STATES)
+ax_lr.set_title('PLS-Obs', fontsize=subsize)
+
+# ax_lr = fig.add_subplot(5, 7, 22, projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(gs[4, 0], projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -194,7 +225,7 @@ ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('LOD-Obs', fontsize=subsize)
 
 # ax_lr = fig.add_subplot(5, 7, 29, projection=cartopy.crs.PlateCarree())
-ax_lr = fig.add_subplot(gs[4, 0], projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(gs[5, 0], projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -243,6 +274,7 @@ LODs = np.zeros((25, 6))
 LAs = np.zeros((25, 6))
 RDs = np.zeros((25, 6))
 LRs = np.zeros((25, 6))
+PLSs = np.zeros((25, 6))
 MLs = np.zeros((25, 6))
 MLLRs = np.zeros((25, 6))
 
@@ -256,7 +288,7 @@ for i in range(len(station_peaks)):
         LRs[i, :] = scores_LR_lag3[i, :]
         MLs[i, :] = scores_AutoML_lag3[i, :]
         MLLRs[i, :] = scores_AutoLR_lag3[i, :]
-        
+        PLSs[i, :] = scores_PLS_lag3[i, :]
     else:
         LODs[i, :] = scores_LOD[i, :]
         LAs[i, :] = scores_LA[i, :]
@@ -264,101 +296,119 @@ for i in range(len(station_peaks)):
         LRs[i, :] = scores_LR[i, :]
         MLs[i, :] = scores_AutoML[i, :]
         MLLRs[i, :] = scores_AutoLR[i, :]
+        PLSs[i, :] = scores_PLS[i, :]
 
-def plot_lines(ax, LRs, RDs, LAs, LODs, MLLRs, file_name='smooth-line.png'):
+def plot_lines(ax, LRs, RDs, LAs, PLSs, LODs, MLLRs, file_name='smooth-line.png'):
+    space = 3.2
     for i in range(6):
-        bplot = ax.boxplot(LRs[:, i], positions=[.2+i*3], patch_artist=True)
+        bplot = ax.boxplot(LRs[:, i], positions=[.2+i*space], patch_artist=True)
         bplot['boxes'][0].set_facecolor('tab:red')
         bplot['medians'][0].set_color('black')
-        bplot = ax.boxplot(RDs[:, i], positions=[.6+i*3], patch_artist=True)
+        bplot = ax.boxplot(RDs[:, i], positions=[.6+i*space], patch_artist=True)
         bplot['boxes'][0].set_facecolor('tab:green')
         bplot['medians'][0].set_color('black')
-        bplot = ax.boxplot(LAs[:, i], positions=[1+i*3], patch_artist=True)
+        bplot = ax.boxplot(LAs[:, i], positions=[1+i*space], patch_artist=True)
         bplot['boxes'][0].set_facecolor('tab:blue')
         bplot['medians'][0].set_color('black')
-        bplot = ax.boxplot(LODs[:, i], positions=[1.4+i*3], patch_artist=True)
+        bplot = ax.boxplot(PLSs[:, i], positions=[1.4+i*space], patch_artist=True)
+        bplot['boxes'][0].set_facecolor('tab:brown')
+        bplot['medians'][0].set_color('black')
+        bplot = ax.boxplot(LODs[:, i], positions=[1.8+i*space], patch_artist=True)
         bplot['boxes'][0].set_facecolor('tab:purple')
         bplot['medians'][0].set_color('black')
-        bplot = ax.boxplot(MLLRs[:, i], positions=[1.8+i*3], patch_artist=True)
+        bplot = ax.boxplot(MLLRs[:, i], positions=[2.2+i*space], patch_artist=True)
         bplot['boxes'][0].set_facecolor('tab:orange')
         bplot['medians'][0].set_color('black')
-    ax.set_xticks(np.arange(1, 17, 3), np.arange(1, 7))
+    ax.set_xticks(np.arange(1.2, 19, space), np.arange(1, 7))
     # [1, 4, 7, 10, 13, 16]
     main_linewidth = 1
     sub_linewidth = .5
     for i in range(5):
+        # Line connect two EOFs
         if i==0:
-            ax.plot([2+i*3, 3+i*3], np.median(LRs[:, i:i+2], axis=0), 
-                    label='Linear', color='tab:red', linestyle='-', 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(LRs[:, i:i+2], axis=0), 
+                    label='LR', color='tab:red', linestyle='-', 
                     linewidth=main_linewidth)
-            ax.plot([2+i*3, 3+i*3], np.median(LAs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(LAs[:, i:i+2], axis=0), 
                     label='Lasso', color='tab:blue', linestyle='-', 
                     linewidth=main_linewidth)
-            ax.plot([2+i*3, 3+i*3], np.median(RDs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(RDs[:, i:i+2], axis=0), 
                     label='Ridge', color='tab:green', linestyle='-', 
                     linewidth=main_linewidth)
-            ax.plot([2+i*3, 3+i*3], np.median(LODs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(PLSs[:, i:i+2], axis=0), 
+                    label='PLS', color='tab:brown', linestyle='-', 
+                    linewidth=main_linewidth)
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(LODs[:, i:i+2], axis=0), 
                     label='LOD', color='tab:purple', linestyle='-', 
                     linewidth=main_linewidth)
-            ax.plot([2+i*3, 3+i*3], np.median(MLLRs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(MLLRs[:, i:i+2], axis=0), 
                     label='AutoML', color='tab:orange', linestyle='-', 
                     linewidth=main_linewidth)
         else:
-            ax.plot([2+i*3, 3+i*3], np.median(LRs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(LRs[:, i:i+2], axis=0), 
                     color='tab:red', linestyle='-', linewidth=main_linewidth)
-            ax.plot([2+i*3, 3+i*3], np.median(LAs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(LAs[:, i:i+2], axis=0), 
                     color='tab:blue', linestyle='-', linewidth=main_linewidth)
-            ax.plot([2+i*3, 3+i*3], np.median(RDs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(RDs[:, i:i+2], axis=0), 
                     color='tab:green', linestyle='-', linewidth=main_linewidth)
-            ax.plot([2+i*3, 3+i*3], np.median(LODs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(LODs[:, i:i+2], axis=0), 
                     color='tab:purple', linestyle='-', linewidth=main_linewidth)
-            ax.plot([2+i*3, 3+i*3], np.median(MLLRs[:, i:i+2], axis=0), 
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(PLSs[:, i:i+2], axis=0), 
+                    color='tab:brown', linestyle='-', linewidth=main_linewidth)
+            ax.plot([2.5+i*space, -0.1+i*space+space], np.median(MLLRs[:, i:i+2], axis=0), 
                     color='tab:orange', linestyle='-', linewidth=main_linewidth)
-        ax.plot([.2+i*3, 2+i*3], 
+        # previous line for median 
+        ax.plot([.2+i*space, 2.5+i*space], 
                 [np.median(LRs[:, i]), np.median(LRs[:, i])],
                 color='tab:red', linestyle='--', linewidth=sub_linewidth)
-        ax.plot([.6+i*3, 2+i*3], 
+        ax.plot([.6+i*space, 2.5+i*space], 
                 [np.median(RDs[:, i]), np.median(RDs[:, i])],
                 color='tab:green', linestyle='--', linewidth=sub_linewidth)
-        ax.plot([1+i*3, 2+i*3], 
+        ax.plot([1+i*space, 2.5+i*space], 
                 [np.median(LAs[:, i]), np.median(LAs[:, i])],
                 color='tab:blue', linestyle='--', linewidth=sub_linewidth)
-        ax.plot([1.4+i*3, 2+i*3], 
+        ax.plot([1.8+i*space, 2.5+i*space], 
                 [np.median(LODs[:, i]), np.median(LODs[:, i])],
                 color='tab:purple', linestyle='--', linewidth=sub_linewidth)
-        ax.plot([1.8+i*3, 2+i*3], 
+        ax.plot([1.4+i*space, 2.5+i*space], 
+                [np.median(PLSs[:, i]), np.median(PLSs[:, i])],
+                color='tab:brown', linestyle='--', linewidth=sub_linewidth)
+        ax.plot([2.2+i*space, 2.5+i*space], 
                 [np.median(MLLRs[:, i]), np.median(MLLRs[:, i])],
                 color='tab:orange', linestyle='--', linewidth=sub_linewidth)
-        
-        ax.plot([3+i*3, 3.2+i*3], 
+        # After line for median. 
+        ax.plot([-0.1+i*space+space, 0.2+i*space+space], 
                 [np.median(LRs[:, i+1]), np.median(LRs[:, i+1])],
                 color='tab:red', linestyle='--', linewidth=sub_linewidth)
-        ax.plot([3+i*3, 3.6+i*3], 
+        ax.plot([-0.1+i*space+space, 0.6+i*space+space], 
                 [np.median(RDs[:, i+1]), np.median(RDs[:, i+1])],
                 color='tab:green', linestyle='--', linewidth=sub_linewidth)
-        ax.plot([3+i*3, 4+i*3], 
+        ax.plot([-0.1+i*space+space, 1+i*space+space], 
                 [np.median(LAs[:, i+1]), np.median(LAs[:, i+1])],
                 color='tab:blue', linestyle='--', linewidth=sub_linewidth)
-        ax.plot([3+i*3, 4.4+i*3], 
+        ax.plot([-0.1+i*space+space, 1.4+i*space+space], 
+                [np.median(PLSs[:, i+1]), np.median(PLSs[:, i+1])],
+                color='tab:brown', linestyle='--', linewidth=sub_linewidth)
+        ax.plot([-0.1+i*space+space, 1.8+i*space+space], 
                 [np.median(LODs[:, i+1]), np.median(LODs[:, i+1])],
                 color='tab:purple', linestyle='--', linewidth=sub_linewidth)
-        ax.plot([3+i*3, 4.8+i*3], 
+        ax.plot([-0.1+i*space+space, 2.2+i*space+space], 
                 [np.median(MLLRs[:, i+1]), np.median(MLLRs[:, i+1])],
                 color='tab:orange', linestyle='--', linewidth=sub_linewidth)
 
 
-    ax.legend(fontsize=fontsize)
+    ax.legend(fontsize=fontsize, ncols=2)
     ax.set_xlabel('Number of EOFs', fontsize=fontsize)
     ax.set_ylabel('Median R2 Score', fontsize=fontsize)
 
     
-ax = fig.add_subplot(gs[5:, :])
+ax = fig.add_subplot(gs[6:, :])
 # ax.set_title('B', fontsize=15, weight='bold', loc='left')
 
 ax.annotate('B)', xy=(-0.05, 1.0), xycoords='axes fraction', 
             fontsize=14, weight='bold')
-ax.annotate('A)', xy=(-0.05, 3.75), xycoords='axes fraction', 
+ax.annotate('A)', xy=(-0.05, 4.25), xycoords='axes fraction', 
             fontsize=14, weight='bold')
-plot_lines(ax, LRs, RDs, LAs, LODs, MLs)
+plot_lines(ax, LRs, RDs, LAs, PLSs, LODs, MLs)
 
 plt.savefig('Figure2.png', bbox_inches='tight', dpi=180)
