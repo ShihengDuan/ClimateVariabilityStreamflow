@@ -44,14 +44,14 @@ for station in station_ids:
     lats.append(record['gauge_lat'])
     lons.append(record['gauge_lon'])
 
-norm = colors.Normalize(vmin=0, vmax=0.5)
-norm_re = colors.Normalize(vmin=0, vmax=0.7)
+norm = colors.Normalize(vmin=0, vmax=0.6)
+norm_re = colors.Normalize(vmin=0, vmax=0.6)
 
 fig = plt.figure(figsize=(11, 15))
 # Grid Design
 gs = GridSpec(8, 7, figure=fig)
 for i in range(6):
-    ind = i+1
+    ind = i
     # ax = fig.add_subplot(5, 7, ind+1, projection=cartopy.crs.PlateCarree())
     ax = fig.add_subplot(gs[0, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
@@ -65,9 +65,9 @@ for i in range(6):
         ax.scatter(lons[j], lats[j], c=score, norm=norm, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
     ax.add_feature(cartopy.feature.STATES)
-    ax.set_title('LR-EOF-'+str(ind), fontsize=subsize)
+    ax.set_title('LR-EOF-'+str(i+1), fontsize=subsize)
 for i in range(6):
-    ind = i+1
+    ind = i
     # ax = fig.add_subplot(5, 7, ind+7+1, projection=cartopy.crs.PlateCarree())
     ax = fig.add_subplot(gs[2, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
@@ -81,9 +81,9 @@ for i in range(6):
         ax.scatter(lons[j], lats[j], c=score, norm=norm, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
     ax.add_feature(cartopy.feature.STATES)
-    ax.set_title('Ridge-EOF-'+str(ind), fontsize=subsize)
+    ax.set_title('Ridge-EOF-'+str(i+1), fontsize=subsize)
 for i in range(6):
-    ind = i+1
+    ind = i
     # ax = fig.add_subplot(5, 7, ind+14+1, projection=cartopy.crs.PlateCarree())
     ax = fig.add_subplot(gs[1, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
@@ -97,9 +97,9 @@ for i in range(6):
         ax.scatter(lons[j], lats[j], c=score, norm=norm, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
     ax.add_feature(cartopy.feature.STATES)
-    ax.set_title('Lasso-EOF-'+str(ind), fontsize=subsize)
+    ax.set_title('Lasso-EOF-'+str(i+1), fontsize=subsize)
 for i in range(6):
-    ind = i+1
+    ind = i
     # ax = fig.add_subplot(5, 7, ind+21+1, projection=cartopy.crs.PlateCarree())
     ax = fig.add_subplot(gs[4, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
@@ -113,10 +113,10 @@ for i in range(6):
         ax.scatter(lons[j], lats[j], c=score, norm=norm, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
     ax.add_feature(cartopy.feature.STATES)
-    ax.set_title('LOD-EOF-'+str(ind), fontsize=subsize)
+    ax.set_title('LOD-EOF-'+str(i+1), fontsize=subsize)
 
 for i in range(6):
-    ind = i+1
+    ind = i
     # ax = fig.add_subplot(5, 7, ind+21+1, projection=cartopy.crs.PlateCarree())
     ax = fig.add_subplot(gs[3, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
@@ -130,10 +130,10 @@ for i in range(6):
         ax.scatter(lons[j], lats[j], c=score, norm=norm, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
     ax.add_feature(cartopy.feature.STATES)
-    ax.set_title('PLS-EOF-'+str(ind), fontsize=subsize)
+    ax.set_title('PLS-EOF-'+str(i+1), fontsize=subsize)
 
 for i in range(6):
-    ind = i+1
+    ind = i
     # ax = fig.add_subplot(5, 7, ind+28+1, projection=cartopy.crs.PlateCarree())
     ax = fig.add_subplot(gs[5, ind], projection=cartopy.crs.PlateCarree())
     for j in range(len(station_peaks)):
@@ -147,17 +147,15 @@ for i in range(6):
         ax.scatter(lons[j], lats[j], c=score, norm=norm, 
                    transform=cartopy.crs.PlateCarree(), cmap='plasma', marker=marker)
     ax.add_feature(cartopy.feature.STATES)
-    ax.set_title('AutoML-EOF-'+str(ind), fontsize=subsize)
+    ax.set_title('AutoML-EOF-'+str(i+1), fontsize=subsize)
 
 # reanalysis
 with open('../dataResult/Reanalysis/results.p', 'rb') as pfile:
     results = pickle.load(pfile)
 
 # ax_lr = fig.add_subplot(5, 7, 1, projection=cartopy.crs.PlateCarree())
-ax_lr = fig.add_subplot(gs[0, 0], projection=cartopy.crs.PlateCarree())
-'''ax_lr.set_title('A', fontsize=15, weight='bold', loc='left')
-ax_lr.text(-0.1, 1.1, 'A', transform=ax.transAxes, 
-            size=15, weight='bold')'''
+ax_lr = fig.add_subplot(gs[0, 6], projection=cartopy.crs.PlateCarree())
+
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -170,7 +168,7 @@ for ind, station in enumerate(station_ids):
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('LR-Obs', fontsize=subsize)
 
-ax_lr = fig.add_subplot(gs[1, 0], projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(gs[1, 6], projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -183,7 +181,7 @@ for ind, station in enumerate(station_ids):
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('Lasso-Obs', fontsize=subsize)
 
-ax_lr = fig.add_subplot(gs[2, 0], projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(gs[2, 6], projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -197,7 +195,7 @@ ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('Ridge-Obs', fontsize=subsize)
 
 
-ax_lr = fig.add_subplot(gs[3, 0], projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(gs[3, 6], projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -211,7 +209,7 @@ ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('PLS-Obs', fontsize=subsize)
 
 # ax_lr = fig.add_subplot(5, 7, 22, projection=cartopy.crs.PlateCarree())
-ax_lr = fig.add_subplot(gs[4, 0], projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(gs[4, 6], projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -225,7 +223,7 @@ ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('LOD-Obs', fontsize=subsize)
 
 # ax_lr = fig.add_subplot(5, 7, 29, projection=cartopy.crs.PlateCarree())
-ax_lr = fig.add_subplot(gs[5, 0], projection=cartopy.crs.PlateCarree())
+ax_lr = fig.add_subplot(gs[5, 6], projection=cartopy.crs.PlateCarree())
 for ind, station in enumerate(station_ids):
     peak = station_peaks[ind]
     if peak>3 and peak<12:
@@ -238,22 +236,18 @@ for ind, station in enumerate(station_ids):
 ax_lr.add_feature(cartopy.feature.STATES)
 ax_lr.set_title('AutoML-Obs', fontsize=subsize)
 
-# fig.subplots_adjust(right=0.94)
-# ax = fig.add_subplot(gs[:-2, -1])
 cbar_ax = fig.add_axes([0.92, 0.35, 0.02, 0.5])
 cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap="plasma"), 
                   cax=cbar_ax,
                   # ax=ax,
                   shrink=.5)
-cb.set_label(label='CMIP6', fontsize=fontsize)
+cb.set_label(label='$R^2$ score', fontsize=fontsize)
 
-# fig.subplots_adjust(left=0.05)
-cbar_ax = fig.add_axes([0.09, 0.35, 0.02, 0.5])
-cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm_re, cmap="plasma"), 
+'''cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm_re, cmap="plasma"), 
                   cax=cbar_ax)
 cbar_ax.yaxis.set_ticks_position('left')
 cbar_ax.yaxis.set_label_position('left')
-cbar_ax.set_ylabel(ylabel='Observation', fontsize=fontsize)
+cbar_ax.set_ylabel(ylabel='Observation', fontsize=fontsize)'''
 
 # subplot2
 scores_LOD = np.load('../dataResult/scores_LOD_smooth.npy')
@@ -320,6 +314,8 @@ def plot_lines(ax, LRs, RDs, LAs, PLSs, LODs, MLLRs, file_name='smooth-line.png'
         bplot['boxes'][0].set_facecolor('tab:orange')
         bplot['medians'][0].set_color('black')
     ax.set_xticks(np.arange(1.2, 19, space), np.arange(1, 7))
+    ax.set_xticklabels(['EOF1', 'EOF1-2', 'EOF1-3', 
+                        'EOF1-4', 'EOF1-5', 'EOF1-6'], fontsize=fontsize)
     # [1, 4, 7, 10, 13, 16]
     main_linewidth = 1
     sub_linewidth = .5
@@ -398,8 +394,8 @@ def plot_lines(ax, LRs, RDs, LAs, PLSs, LODs, MLLRs, file_name='smooth-line.png'
 
 
     ax.legend(fontsize=fontsize, ncols=2)
-    ax.set_xlabel('Number of EOFs', fontsize=fontsize)
-    ax.set_ylabel('Median R2 Score', fontsize=fontsize)
+    ax.set_xlabel('EOFs used in ML models', fontsize=fontsize)
+    ax.set_ylabel('Median $R^2$ Score', fontsize=fontsize)
 
     
 ax = fig.add_subplot(gs[6:, :])

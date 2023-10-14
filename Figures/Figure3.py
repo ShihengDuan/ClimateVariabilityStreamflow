@@ -62,7 +62,7 @@ def plot_ax(ax, r2s, model):
         if not key =='full':
             color=modes_colors[key] if key in modes_colors else 'tab:blue'
             ax.bar(i, np.median(r2s[key])/full_r2, color=color)
-    if model=='LOD':
+    '''if model=='LOD':
         ax.set_yticks([0, 0.2, 0.4, 0.6])
         ax.set_yticklabels([0, 0.2, 0.4, 0.6])
     elif model=='AutoML':
@@ -70,7 +70,10 @@ def plot_ax(ax, r2s, model):
         ax.set_yticklabels([0, 0.2, 0.4])
     else:
         ax.set_yticks([0, 0.4, 0.8])
-        ax.set_yticklabels([0, 0.4, 0.8])
+        ax.set_yticklabels([0, 0.4, 0.8])'''
+    ax.set_yticks([0, 0.4, 0.8])
+    ax.set_yticklabels([0, 0.4, 0.8])
+    ax.set_ylim([0, 0.8])
     base_r2 = 0
     ax2 = ax.twinx()
     for l in range(5):
@@ -86,7 +89,10 @@ def plot_ax(ax, r2s, model):
             ax2.bar(feature_to_plot+1, (r2-base_r2)/full_r2, bottom=base_r2/full_r2, color=color)
             base_r2 = r2
     y_max = np.ceil(base_r2/full_r2 * 2) / 2
-    ax2.set_ylim([0, y_max])
+    ax2.set_ylim([0, 1.4])
+    ax2.set_yticks([0, 0.7, 1.4])
+    ax2.set_yticklabels([0, 0.7, 1.4])
+    
     print(full_r2, base_r2, model)
 # fig, axes = plt.subplots(nrows=6, ncols=1, sharex=True, sharey=False, figsize=(8, 8))
 # ax = axes.flatten()[0]
@@ -105,7 +111,7 @@ ax = fig.add_subplot(gs[0, :2], sharex=ax1)
 ax.set_title('LR', fontsize=fontsize)
 plot_ax(ax, r2s=r2s_linear, model='LR')
 axes.append(ax)
-ax.annotate('A)', xy=(-0.08, 1.15), xycoords='axes fraction', 
+ax.annotate('A)', xy=(-0.1, 1.15), xycoords='axes fraction', 
             fontsize=14, weight='bold')
 
 ax2 = fig.add_subplot(gs[1, :2], sharex=ax1)
@@ -130,7 +136,8 @@ axes.append(ax)
 
 for i in range(1, 6):
     plt.setp(axes[i].get_xticklabels(), visible=False)
-
+fig.supylabel('Relative performance with respect to the full model', va='center', 
+              rotation='vertical', fontsize=fontsize, x=0.04)
 # Spatial map
 results = pd.read_csv('~/MyWorkSpace/hydro/include/resultsPass/results.csv')
 
