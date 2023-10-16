@@ -240,6 +240,7 @@ cbar_ax = fig.add_axes([0.92, 0.35, 0.02, 0.5])
 cb = fig.colorbar(mpl.cm.ScalarMappable(norm=norm, cmap="plasma"), 
                   cax=cbar_ax,
                   # ax=ax,
+                  extend='both',
                   shrink=.5)
 cb.set_label(label='$R^2$ score', fontsize=fontsize)
 
