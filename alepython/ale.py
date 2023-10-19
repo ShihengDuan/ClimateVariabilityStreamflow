@@ -838,4 +838,200 @@ def ale_plot(
     if save_fig is not None:
         plt.savefig(save_fig, dpi=150, bbox_inches='tight')
     plt.show()
-    return ax
+    if len(features) == 1:
+        return ax, ale, quantiles
+    else:
+        return ax, ale, quantiles_list
+
+
+def get_ale(
+    model,
+    train_set,
+    features,
+    bins=10,
+    monte_carlo=False,
+    predictor=None,
+    features_classes=None,
+    monte_carlo_rep=50,
+    monte_carlo_ratio=0.1,
+    rugplot_lim=1000,
+    main=False, 
+):
+    """Get ALE function of specified features based on training set. NO PLOT
+
+    Parameters
+    ----------
+    model : object
+        An object that implements a 'predict' method. If None, a `predictor` function
+        must be supplied which will be used instead of `model.predict`.
+    train_set : pandas.core.frame.DataFrame
+        Training set on which model was trained.
+    features : [2-iterable of] column label
+        One or two features for which to plot the ALE plot.
+    bins : [2-iterable of] int, optional
+        Number of bins used to split feature's space. 2 integers can only be given
+        when 2 features are supplied in order to compute a different number of
+        quantiles for each feature.
+    monte_carlo : boolean, optional
+        Compute and plot Monte-Carlo samples.
+    predictor : callable
+        Custom prediction function. See `model`.
+    features_classes : iterable of str, optional
+        If features is first-order and a categorical variable, plot ALE according to
+        discrete aspect of data.
+    monte_carlo_rep : int
+        Number of Monte-Carlo replicas.
+    monte_carlo_ratio : float
+        Proportion of randomly selected samples from dataset for each Monte-Carlo
+        replica.
+    rugplot_lim : int, optional
+        If `train_set` has more rows than `rugplot_lim`, no rug plot will be plotted.
+        Set to None to always plot rug plots. Set to 0 to always plot rug plots.
+    main: bool
+        Whether to take main effects into consideration (only valid for 2D plots). 
+    Raises
+    ------
+    ValueError
+        If both `model` and `predictor` are None.
+    ValueError
+        If `len(features)` not in {1, 2}.
+    ValueError
+        If multiple bins were given for 1 feature.
+    NotImplementedError
+        If `features_classes` is not None.
+
+    """
+    if model is None and predictor is None:
+        raise ValueError("If 'model' is None, 'predictor' must be supplied.")
+
+    if features_classes is not None:
+        raise NotImplementedError("'features_classes' is not implemented yet.")
+
+    # fig, ax = plt.subplots(layout="constrained")
+
+    features = _parse_features(features)
+    print('Features: ', features)
+    if len(features) == 1:
+        if not isinstance(bins, (int, np.integer)):
+            raise ValueError("1 feature was given, but 'bins' was not an integer.")
+
+        if features_classes is None:
+            # Continuous data.
+            if monte_carlo:
+                mc_replicates = np.asarray(
+                    [
+                        [
+                            np.random.choice(range(train_set.shape[0]))
+                            for _ in range(int(monte_carlo_ratio * train_set.shape[0]))
+                        ]
+                        for _ in range(monte_carlo_rep)
+                    ]
+                )
+                for k, rep in enumerate(mc_replicates):
+                    train_set_rep = train_set.iloc[rep, :]
+                    # Make this recursive?
+                    if features_classes is None:
+                        # The same quantiles cannot be reused here as this could cause
+                        # some bins to be empty or contain disproportionate numbers of
+                        # samples.
+                        mc_ale, mc_quantiles = _first_order_ale_quant(
+                            model.predict if predictor is None else predictor,
+                            train_set_rep,
+                            features[0],
+                            bins,
+                        )
+                        '''
+                        _first_order_quant_plot(
+                            ax, mc_quantiles, mc_ale, color="#1f77b4", alpha=0.06
+                        )
+                        '''
+
+            ale, quantiles = _first_order_ale_quant(
+                model.predict if predictor is None else predictor,
+                train_set,
+                features[0],
+                bins,
+            )
+            # _ax_labels(ax, "Feature '{}'".format(features[0]), "")
+            # _ax_labels(ax, str(features[0]))
+            '''_ax_title(
+                ax,
+                "First-order ALE of feature '{0}'".format(features[0]),
+                "Bins : {0} - Monte-Carlo : {1}".format(
+                    len(quantiles) - 1,
+                    mc_replicates.shape[0] if monte_carlo else "False",
+                ),
+            )'''
+            '''_ax_title(
+                ax,
+                "First-order ALE of feature '{0}'".format(features[0]),
+            )
+            ax.grid(True, linestyle="-", alpha=0.4)
+            if rugplot_lim is None or train_set.shape[0] <= rugplot_lim:
+                sns.rugplot(train_set[features[0]], ax=ax, alpha=0.2)
+            _first_order_quant_plot(ax, quantiles, ale, color="black")
+            _ax_quantiles(ax, quantiles)'''
+
+    elif len(features) == 2:
+        if features_classes is None:
+            # Continuous data.
+            if main:
+                ale, quantiles_list = _second_order_ale_quant(
+                    model.predict if predictor is None else predictor,
+                    train_set,
+                    features,
+                    bins,
+                    first=True, # keep the first-order effect
+                )
+            else:
+                ale, quantiles_list = _second_order_ale_quant(
+                    model.predict if predictor is None else predictor,
+                    train_set,
+                    features,
+                    bins,
+                    first=False, # remove the first-order effect
+                )
+            '''
+            norm = _second_order_quant_plot(fig, ax, quantiles_list, ale)
+            # divider = make_axes_locatable(ax)
+            # cbar_ax = divider.new_horizontal(size="4%", pad=0.2, axes_class=plt.Axes, pack_start=False)
+            # fig.add_axes(cbar_ax)
+            fig.colorbar(
+                cm.ScalarMappable(norm=norm, cmap="bwr"),
+                # cax=cbar_ax,
+                orientation="vertical",
+            )
+            
+            _ax_labels(
+                ax,
+                "Feature '{}'".format(features[0]),
+                "Feature '{}'".format(features[1]),
+            )
+            
+            _ax_labels(
+                ax,
+                str(features[0]),
+                str(features[1]),
+            )
+            for twin, quantiles in zip(("x", "y"), quantiles_list):
+                _ax_quantiles(ax, quantiles, twin=twin)
+            _ax_title(
+                ax,
+                "Second-order ALE of {0} and {1}".format(
+                    features[0], features[1]
+                ),
+                # "Bins : {0}x{1}".format(*[len(quant) - 1 for quant in quantiles_list]),
+            )
+            '''
+            
+    else:
+        raise ValueError(
+            "'{n_feat}' 'features' were given, but only up to 2 are supported.".format(
+                n_feat=len(features)
+            )
+        )
+    
+    if len(features) == 1:
+        return ale, quantiles
+    else:
+        return ale, quantiles_list
