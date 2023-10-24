@@ -20,8 +20,7 @@ custom_hyperparameters[CustomLRModel] = {}
 import argparse
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--exclude', type=str)
-    parser.add_argument('--smooth', type=int, default=0)
+    parser.add_argument('--smooth', type=int, default=1)
     parser.add_argument('--eof', type=int)
     # parser.add_argument('--pre_season', type=int, default=0)
     parser.add_argument('--model_type', choices=['LR', 'Lasso', 'Ridge', 'AutoML', 'LOD', 'AutoLR'])
@@ -36,25 +35,20 @@ station_ids = ['10336645', '10336660', '11124500', '11141280',
                '11482500', '11522500', '11523200', '11528700'] # 25 in total. 
 station_peaks = [5, 5, 3, 3, 2, 2, 3, 6, 5, 5, 5, 2, 3, 2, 2, 3, 1, 1, 1, 2, 12, 1, 3, 5, 2]
 args = get_args()
-exclude = args['exclude']
+
 eof = args['eof']
 smooth = args['smooth']
 if smooth==0:
     mode_smooth=False
 else:
     mode_smooth=True
-print('exclude: ', exclude)
-'''pre_season = args['pre_season']
-if pre_season==0:
-    lag3 = False
-else:
-    lag3 = True'''
+
 model_type = args['model_type']
-hist_co2 = pd.read_csv('../historical_co2.csv', index_col=['wy', 'year', 'month'])
-ssp126_co2 = pd.read_csv('../ssp126_co2.csv', index_col=['wy', 'year', 'month'])
-ssp245_co2 = pd.read_csv('../ssp245_co2.csv', index_col=['wy', 'year', 'month'])
-ssp370_co2 = pd.read_csv('../ssp370_co2.csv', index_col=['wy', 'year', 'month'])
-ssp585_co2 = pd.read_csv('../ssp585_co2.csv', index_col=['wy', 'year', 'month'])
+hist_co2 = pd.read_csv('historical_co2.csv', index_col=['wy', 'year', 'month'])
+ssp126_co2 = pd.read_csv('ssp126_co2.csv', index_col=['wy', 'year', 'month'])
+ssp245_co2 = pd.read_csv('ssp245_co2.csv', index_col=['wy', 'year', 'month'])
+ssp370_co2 = pd.read_csv('ssp370_co2.csv', index_col=['wy', 'year', 'month'])
+ssp585_co2 = pd.read_csv('ssp585_co2.csv', index_col=['wy', 'year', 'month'])
 
 hist_co2 = hist_co2/300
 ssp126_co2 = ssp126_co2/300
@@ -63,34 +57,34 @@ ssp370_co2 = ssp370_co2/300
 ssp585_co2 = ssp585_co2/300
 
 # Load data
-ACCESS_hist_dfs = load_data('ACCESS-ESM1-5', ensembles=range(1, 11), co2=hist_co2, scenario='hist')
-ACCESS_126_dfs = load_data('ACCESS-ESM1-5', ensembles=range(1, 11), 
+ACCESS_hist_dfs = load_data('ACCESS-ESM1-5', ensembles=range(1, 3), co2=hist_co2, scenario='hist')
+'''ACCESS_126_dfs = load_data('ACCESS-ESM1-5', ensembles=range(1, 11), 
                             co2=ssp126_co2, scenario='ssp126', start_wy=2015, end_wy=2099)
 ACCESS_245_dfs = load_data('ACCESS-ESM1-5', ensembles=range(1, 11), 
                             co2=ssp245_co2, scenario='ssp245', start_wy=2015, end_wy=2099)
 ACCESS_370_dfs = load_data('ACCESS-ESM1-5', ensembles=range(1, 11), 
-                            co2=ssp370_co2, scenario='ssp370', start_wy=2015, end_wy=2099)
-ACCESS_585_dfs = load_data('ACCESS-ESM1-5', ensembles=range(1, 11), 
+                            co2=ssp370_co2, scenario='ssp370', start_wy=2015, end_wy=2099)'''
+ACCESS_585_dfs = load_data('ACCESS-ESM1-5', ensembles=range(1, 21), 
                             co2=ssp585_co2, scenario='ssp585', start_wy=2015, end_wy=2099)
 
-MPI_hist_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 11), co2=hist_co2, scenario='hist')
-MPI_126_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 11), 
+MPI_hist_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 3), co2=hist_co2, scenario='hist')
+'''MPI_126_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 11), 
                          co2=ssp126_co2, scenario='ssp126', start_wy=2015, end_wy=2099)
 MPI_245_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 11), 
                         co2=ssp245_co2, scenario='ssp245', start_wy=2015, end_wy=2099)
 MPI_370_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 11), 
-                        co2=ssp370_co2, scenario='ssp370', start_wy=2015, end_wy=2099)
-MPI_585_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 11), 
+                        co2=ssp370_co2, scenario='ssp370', start_wy=2015, end_wy=2099)'''
+MPI_585_dfs = load_data('MPI-ESM1-2-LR', ensembles=range(1, 21), 
                         co2=ssp585_co2, scenario='ssp585', start_wy=2015, end_wy=2099)
 
 
 real_hist_dfs = []
-path = '../Reanalysis-csv/hist_q_csv_monthly.csv'
+path = 'Reanalysis-csv/hist_q_csv_monthly.csv'
 real_q_df = pd.read_csv(path, index_col=['wy', 'year', 'month'])
 real_q_df[real_q_df<0]=0
 real_q_df = real_q_df.sort_index(level=0)
 # hist_modes_df = pd.read_csv('IPSL-Modes-csv-high/r'+str(member)+'-hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
-real_modes_df = pd.read_csv('../Reanalysis-csv-CBF/hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
+real_modes_df = pd.read_csv('Reanalysis-csv-CBF/hist_modes_csv_monthly.csv', index_col=['wy', 'year', 'month'])
 real_modes_df['modesWY']=real_modes_df.index
 real_modes_df_co2 = pd.concat((real_modes_df, (hist_co2)), axis=1)
 real_modes_df_co2 = real_modes_df_co2.sort_index(level=0)
@@ -120,13 +114,13 @@ def find_alpha(train_x, train_y, val_x, val_y):
 
 def run(time_lag, eof_modes, random_seed, station_id, peak):
     print('Time: ', time_lag, ' eof: ', eof_modes)
-    predictor = ['PDO_eof', 'AMO_eof', 'PNA_eof', 
-                     'NAM_eof', 'NAO_eof', 'SAM_eof']
-    predictor_high = []
     if peak>3 and peak<12:
         lag3=True
     else:
         lag3=False
+    predictor = ['PDO_eof', 'AMO_eof', 'PNA_eof', 
+                     'NAM_eof', 'NAO_eof', 'SAM_eof']
+    predictor_high = []
     for i in range(1, eof_modes+1):
         for p in predictor:
             if lag3:
@@ -139,11 +133,6 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
     else:
         predictor_high.append('nino34')
         predictor_high.append('co2')
-    # remove one predictor
-    if lag3:
-        predictor_high.remove(exclude+'_lag3')
-    else:
-        predictor_high.remove(exclude)
     aux = []
     if time_lag>0:
         for k in range(1, time_lag+1):
@@ -156,7 +145,7 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
     r2s_ens = []
     for station in [station_id]: # train only one station to be faster. 
         # _, peak = get_peak_month(station, real_df=real_df)
-        # print(station, peak)
+        print(station, peak)
         if peak==1:
             months = [12, peak, peak+1]
         elif peak==12:
@@ -164,14 +153,14 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
         else:
             months = [peak-1, peak, peak+1]
         mam_dfs_ACCESS_hist = get_seasonal_data(ACCESS_hist_dfs, months=months, smooth_mode=True)
-        mam_dfs_ACCESS_126 = get_seasonal_data(ACCESS_126_dfs, months=months, smooth_mode=True)
+        '''mam_dfs_ACCESS_126 = get_seasonal_data(ACCESS_126_dfs, months=months, smooth_mode=True)
         mam_dfs_ACCESS_245 = get_seasonal_data(ACCESS_245_dfs, months=months, smooth_mode=True)
-        mam_dfs_ACCESS_370 = get_seasonal_data(ACCESS_370_dfs, months=months, smooth_mode=True)
+        mam_dfs_ACCESS_370 = get_seasonal_data(ACCESS_370_dfs, months=months, smooth_mode=True)'''
         mam_dfs_ACCESS_585 = get_seasonal_data(ACCESS_585_dfs, months=months, smooth_mode=True)
         mam_dfs_MPI_hist = get_seasonal_data(MPI_hist_dfs, months=months, smooth_mode=True)
-        mam_dfs_MPI_126 = get_seasonal_data(MPI_126_dfs, months=months, smooth_mode=True)
+        '''mam_dfs_MPI_126 = get_seasonal_data(MPI_126_dfs, months=months, smooth_mode=True)
         mam_dfs_MPI_245 = get_seasonal_data(MPI_245_dfs, months=months, smooth_mode=True)
-        mam_dfs_MPI_370 = get_seasonal_data(MPI_370_dfs, months=months, smooth_mode=True)
+        mam_dfs_MPI_370 = get_seasonal_data(MPI_370_dfs, months=months, smooth_mode=True)'''
         mam_dfs_MPI_585 = get_seasonal_data(MPI_585_dfs, months=months, smooth_mode=True)
         # Iterate through validation dataset. 
         all_dfs = []
@@ -187,8 +176,8 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
             new_df = df.copy(deep=True) # to avoid change historical data. 
             new_df['Q_sim'] = (new_df['Q_sim']-new_df['Q_sim'].groupby('station_id').mean())/new_df['Q_sim'].groupby('station_id').std()
             ACCESS_dfs_hist.append(new_df)
-            all_dfs.append(new_df)
-        for i, df in enumerate(mam_dfs_ACCESS_126):
+            # all_dfs.append(new_df)
+        '''for i, df in enumerate(mam_dfs_ACCESS_126):
             df_hist = mam_dfs_ACCESS_hist[0]
             df['Q_sim'] = (df['Q_sim']-df_hist['Q_sim'].groupby('station_id').mean())/df_hist['Q_sim'].groupby('station_id').std()
             test_dfs.append(df)
@@ -199,7 +188,7 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
         for i, df in enumerate(mam_dfs_ACCESS_370):
             df_hist = mam_dfs_ACCESS_hist[i]
             df['Q_sim'] = (df['Q_sim']-df_hist['Q_sim'].groupby('station_id').mean())/df_hist['Q_sim'].groupby('station_id').std()
-            all_dfs.append(df)
+            all_dfs.append(df)'''
         for i, df in enumerate(mam_dfs_ACCESS_585):
             df_hist = mam_dfs_ACCESS_hist[0]
             df['Q_sim'] = (df['Q_sim']-df_hist['Q_sim'].groupby('station_id').mean())/df_hist['Q_sim'].groupby('station_id').std()
@@ -209,8 +198,8 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
             new_df = df.copy(deep=True) # to avoid change historical data. 
             new_df['Q_sim'] = (new_df['Q_sim']-new_df['Q_sim'].groupby('station_id').mean())/new_df['Q_sim'].groupby('station_id').std()
             MPI_dfs_hist.append(new_df)
-            all_dfs.append(new_df)
-        for i, df in enumerate(mam_dfs_MPI_126):
+            # all_dfs.append(new_df)
+        '''for i, df in enumerate(mam_dfs_MPI_126):
             df_hist = mam_dfs_MPI_hist[0]
             df['Q_sim'] = (df['Q_sim']-df_hist['Q_sim'].groupby('station_id').mean())/df_hist['Q_sim'].groupby('station_id').std()
             MPI_dfs_126.append(df)
@@ -224,13 +213,16 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
             df_hist = mam_dfs_MPI_hist[i]
             df['Q_sim'] = (df['Q_sim']-df_hist['Q_sim'].groupby('station_id').mean())/df_hist['Q_sim'].groupby('station_id').std()
             MPI_dfs_370.append(df)
-            all_dfs.append(df)
+            all_dfs.append(df)'''
         for i, df in enumerate(mam_dfs_MPI_585):
             df_hist = mam_dfs_MPI_hist[0]
             df['Q_sim'] = (df['Q_sim']-df_hist['Q_sim'].groupby('station_id').mean())/df_hist['Q_sim'].groupby('station_id').std()
             MPI_dfs_585.append(df)
             all_dfs.append(df)
-        train_dfs, val_dfs = train_test_split(all_dfs, test_size=.3, shuffle=True, random_state=random_seed)
+        test_dfs = all_dfs[random_seed*6:random_seed*6+6]
+        train_val_dfs = all_dfs[:random_seed*6]+all_dfs[random_seed*6+6:]
+        print(len(test_dfs), len(train_val_dfs))
+        train_dfs, val_dfs = train_test_split(train_val_dfs, test_size=.3, shuffle=True, random_state=random_seed)
         train_dfs = pd.concat(train_dfs)
         val_dfs = pd.concat(val_dfs)
         test_dfs = pd.concat(test_dfs)
@@ -261,9 +253,9 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
             val_input = val_input.reset_index(drop=True)
             test_input = station_test_dfs[all_predictor]
             if lag3:
-                path = '/p/lustre2/shiduan/AutogluonModels-ssp/'+'remove-'+exclude+'/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
+                path = '/p/lustre2/shiduan/AutogluonModels-ssp/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
             else:
-                path = '/p/lustre2/shiduan/AutogluonModels-ssp/'+'remove-'+exclude+'/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
+                path = '/p/lustre2/shiduan/AutogluonModels-ssp/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
             model = TabularPredictor(label='Q_sim', verbosity=0, 
             path=path).fit(
             train_data=train_input, tuning_data=val_input)
@@ -274,9 +266,9 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
             val_input = val_input.reset_index(drop=True)
             test_input = station_test_dfs[all_predictor]
             if lag3:
-                path = '/p/lustre2/shiduan/AutogluonModels-LR-ssp/'+'remove-'+exclude+'/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
+                path = '/p/lustre2/shiduan/AutogluonModels-LR-ssp/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)+'-lag3'
             else:
-                path = '/p/lustre2/shiduan/AutogluonModels-LR-ssp/'+'remove-'+exclude+'/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
+                path = '/p/lustre2/shiduan/AutogluonModels-LR-ssp/'+'ag-'+str(station)+'-EOF-'+str(eof_modes)+'-lag-'+str(time_lag)+'-seed-'+str(random_seed)
             model = TabularPredictor(label='Q_sim', verbosity=0, 
             path=path).fit(
             train_data=train_input, tuning_data=val_input, hyperparameters=custom_hyperparameters)
@@ -293,12 +285,11 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
         r2s_ens.append(r2)
         print('R2: ', r2)
         if mode_smooth:
-            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-smooth-ssp/'+'remove-'+exclude+'/'+str(station)+'/'
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-smooth-ssp/'+'/'+str(station)+'/'
         else:
-            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-ssp/'+'remove-'+exclude+'/'+str(station)+'/'
+            path = '/p/lustre2/shiduan/'+model_type.upper()+'-predictions-ssp/'+'/'+str(station)+'/'
         if not os.path.exists(path):
             os.makedirs(path)
-        print(path)
         if lag3:
             file = path+station+'-EOF-'+str(eof_modes)+'-seed-'+str(random_seed)+'-real_lag3.npy'
         else:
@@ -316,28 +307,16 @@ def run(time_lag, eof_modes, random_seed, station_id, peak):
 
 path = '/p/lustre2/shiduan/'
 for ind, station in enumerate(station_ids):
+    print(station)
     peak = station_peaks[ind]
-    print(station, peak)
     r2_max = 0
     time_best = 0
-    if smooth:
-        time_best = 0
-    else:
-        for j, lag in enumerate(range(1, 13)):
-            reals = []
-            preds = []
-            for seed in range(6):
-                real = np.load(path+'Lasso-predictions/'+station+'/'+station+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)+'-real.npy')
-                pred = np.load(path+'Lasso-predictions/'+station+'/'+station+'-EOF-'+str(eof)+'-lag-'+str(lag)+'-seed-'+str(seed)+'-pred.npy')
-                reals.append(real.reshape(-1, 1))
-                preds.append(pred.reshape(-1, 1))
-            reals = np.concatenate(reals)
-            preds = np.concatenate(preds)
-            r2 = r2_score(reals, preds)
-            if r2>r2_max:
-                time_best = lag
-                r2_max = r2
-        print(station, ' ', time_best)
-    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=42, station_id=station, peak=peak)
+    # r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=42, station_id=station, peak=peak)
+    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=0, station_id=station, peak=peak)
+    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=1, station_id=station, peak=peak)
+    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=2, station_id=station, peak=peak)
+    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=3, station_id=station, peak=peak)
+    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=4, station_id=station, peak=peak)
+    r2s_ens = run(time_lag=time_best, eof_modes=eof, random_seed=5, station_id=station, peak=peak)
 
 print('Done')
